@@ -1,5 +1,5 @@
 - 👋 Hi, I’m @OceaneMaria
-- 👀 I’m interested in peinture & nature
+- 👀 I’m interested in nature & painting
 - 🌱 I’m currently learning lot of things
 - 💞️ I’m looking to collaborate on 
 - 📫 How to reach me ...
