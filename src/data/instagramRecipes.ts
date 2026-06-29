@@ -48,6 +48,50 @@ function em(name: string, meal: string): string {
   return '🍽️';
 }
 
+function cleanName(raw: string): string {
+  let s = raw.trim();
+
+  // Extract dish name after "ÉPISODE X —" / "EP. X —" / "N°X —" patterns
+  const epM = s.match(/(?:[ÉE][Pp][Ii][Ss][Oo][Dd][Ee]|[ÉéEe][Pp]\.?\s*\d+|N[°º]\s*\d+)[^—–\-]*[—–\-]\s*(.+)/);
+  if (epM) s = epM[1].trim();
+
+  // Strip leading non-letter chars (emojis, punctuation, spaces)
+  s = s.replace(/^[^a-zA-ZÀ-ÿ]+/, '').trim();
+  // Strip trailing emojis, punctuation and stray quotes
+  s = s.replace(/[^a-zA-ZÀ-ÿ\d)»]+$/, '').trim();
+  // Remove hashtags and extra whitespace
+  s = s.replace(/#\w+/g, '').replace(/\s+/g, ' ').trim();
+
+  // Junk detection: very short, or well-known social-post phrases
+  if (
+    s.length < 5 ||
+    /^(loved it|hello|le détail de la recette|digestive delight)/i.test(s) ||
+    /^\d+\s*(?:ingr[eé]dients?|ingredients?)\s*$/i.test(s)
+  ) return 'Recette Instagram';
+
+  // Sentence-case conditions:
+  // 1. Overall >55% uppercase alpha chars, OR
+  // 2. First word (3+ letters) is entirely uppercase (hook phrases like "UNE FOLIE cette recette…")
+  const alpha = s.replace(/[^a-zA-ZÀ-ÿ]/g, '');
+  const uppers = (s.match(/[A-ZÀÂÄÉÈÊËÎÏÔÙÛÜŸŒÆ]/g) || []).length;
+  const firstWord = s.split(/[\s,!?]/)[0].replace(/[^a-zA-ZÀ-ÿ]/g, '');
+  const firstWordAllCaps = firstWord.length >= 3 && firstWord === firstWord.toUpperCase() && firstWord !== firstWord.toLowerCase();
+  if (alpha.length >= 4 && (uppers / alpha.length > 0.55 || firstWordAllCaps)) {
+    s = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  } else {
+    // At minimum, capitalise first letter
+    s = s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // Truncate at 65 characters
+  if (s.length > 65) {
+    const cut = s.lastIndexOf(' ', 62);
+    s = (cut > 20 ? s.slice(0, cut) : s.slice(0, 62)) + '…';
+  }
+
+  return s || 'Recette Instagram';
+}
+
 // [name, mealType, url, [qty, unit, ingName][]]
 const D: [string,string,string,[number,string,string][]][] = [
   ['UNE FOLIE cette recette de pain au chocolat !! Tu l’as déjà testé ? 😁','dinner','https://instagram.com/reel/C--o3sqC6At/',[]],
@@ -1343,19 +1387,22 @@ const D: [string,string,string,[number,string,string][]][] = [
   ['Recette Instagram','dinner','https://instagram.com/reel/DIWamBTC-yS/',[]],
 ];
 
-export const INSTAGRAM_RECIPES: Recipe[] = D.map(([name, mealType, url, ingrs], i) => ({
-  id: `ig-${i}`,
-  name,
-  description: '',
-  mealType: mealType as 'breakfast'|'lunch'|'dinner',
-  dietaryTags: [],
-  ingredients: ingrs.map(([qty, unit, n]) => ({
-    name: n, quantity: qty, unit, category: cat(n), pricePerUnit: 0,
-  })),
-  servings: 4,
-  prepTime: 20,
-  cookTime: 15,
-  emoji: em(name, mealType),
-  sourceUrl: url || undefined,
-  isCustom: false,
-}));
+export const INSTAGRAM_RECIPES: Recipe[] = D.map(([name, mealType, url, ingrs], i) => {
+  const cleaned = cleanName(name);
+  return {
+    id: `ig-${i}`,
+    name: cleaned,
+    description: '',
+    mealType: mealType as 'breakfast'|'lunch'|'dinner',
+    dietaryTags: [],
+    ingredients: ingrs.map(([qty, unit, n]) => ({
+      name: n, quantity: qty, unit, category: cat(n), pricePerUnit: 0,
+    })),
+    servings: 4,
+    prepTime: 20,
+    cookTime: 15,
+    emoji: em(cleaned, mealType),
+    sourceUrl: url || undefined,
+    isCustom: false,
+  };
+});

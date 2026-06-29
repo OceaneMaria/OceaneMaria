@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Recipe, MealType, DietaryTag, TimeFilter, DIETARY_LABELS, DIETARY_EMOJIS, MEAL_LABELS, MEAL_EMOJIS } from '../types';
 import { useApp } from '../context/AppContext';
@@ -30,12 +30,26 @@ interface RecipeDetailModalProps {
   storeMult: number;
   servings: number;
   onDelete?: () => void;
+  onNameChange: (name: string) => void;
 }
 
-function RecipeDetailModal({ recipe, onClose, storeMult, servings, onDelete }: RecipeDetailModalProps) {
+function RecipeDetailModal({ recipe, onClose, storeMult, servings, onDelete, onNameChange }: RecipeDetailModalProps) {
   const scale = servings / recipe.servings;
   const totalCost = recipe.ingredients.reduce((s, i) => s + i.pricePerUnit * i.quantity * scale * storeMult, 0);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(recipe.name);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingName) nameInputRef.current?.focus();
+  }, [editingName]);
+
+  function saveName() {
+    const trimmed = nameInput.trim();
+    if (trimmed && trimmed !== recipe.name) onNameChange(trimmed);
+    setEditingName(false);
+  }
 
   function fmtQty(qty: number, unit: string): string {
     const scaled = qty * scale;
@@ -45,43 +59,85 @@ function RecipeDetailModal({ recipe, onClose, storeMult, servings, onDelete }: R
   }
 
   const t = totalTime(recipe);
+  const isInstagram = !!recipe.sourceUrl?.includes('instagram.com');
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/50" onClick={onClose}>
-      <div className="mt-auto bg-white rounded-t-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-center pt-3"><div className="w-10 h-1 bg-slate-300 rounded-full" /></div>
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black/50" onClick={onClose}>
+      <div className="mt-auto bg-white rounded-t-2xl max-h-[92vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-center pt-3 shrink-0"><div className="w-10 h-1 bg-slate-300 rounded-full" /></div>
 
-        <div className="overflow-y-auto flex-1 px-4 pb-8">
+        {/* Close button */}
+        <div className="absolute top-4 right-4">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 text-sm">✕</button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-4 pb-10">
+          {/* Header */}
           <div className="text-center py-4">
-            <div className="text-6xl mb-2">{recipe.emoji}</div>
-            <h2 className="text-xl font-bold text-slate-800">{recipe.name}</h2>
+            <div className="text-6xl mb-3">{recipe.emoji}</div>
+
+            {editingName ? (
+              <div className="flex items-center gap-2 mx-2">
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={nameInput}
+                  onChange={e => setNameInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
+                  className="flex-1 px-3 py-2 rounded-xl bg-slate-100 text-slate-800 text-sm outline-none focus:ring-2 focus:ring-green-400"
+                />
+                <button onClick={saveName} className="px-3 py-2 bg-green-600 text-white text-sm font-bold rounded-xl">✓</button>
+                <button onClick={() => setEditingName(false)} className="px-3 py-2 bg-slate-200 text-slate-600 text-sm rounded-xl">✕</button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2 px-2">
+                <h2 className="text-xl font-bold text-slate-800 leading-snug">{recipe.name}</h2>
+                <button
+                  onClick={() => { setNameInput(recipe.name); setEditingName(true); }}
+                  className="shrink-0 text-slate-300 hover:text-slate-500 text-base"
+                  title="Renommer"
+                >
+                  ✏️
+                </button>
+              </div>
+            )}
+
             {recipe.isCustom && (
-              <span className="inline-block mt-1 text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">
-                ✏️ Recette personnalisée
+              <span className="inline-block mt-2 text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">
+                Recette personnalisée
               </span>
             )}
             {recipe.description && (
-              <p className="text-slate-500 text-sm mt-2">{recipe.description}</p>
+              <p className="text-slate-500 text-sm mt-2 leading-relaxed">{recipe.description}</p>
             )}
           </div>
 
-          {/* Source URL */}
+          {/* Instagram / source link */}
           {recipe.sourceUrl && (
             <a
               href={recipe.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 mb-4"
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 mb-4 ${
+                isInstagram
+                  ? 'bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200'
+                  : 'bg-blue-50 border border-blue-200'
+              }`}
             >
-              <span className="text-lg">🔗</span>
+              <span className="text-2xl">{isInstagram ? '📱' : '🔗'}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-blue-500 font-medium">Recette originale</p>
-                <p className="text-sm text-blue-700 truncate">{recipe.sourceUrl}</p>
+                <p className={`text-xs font-semibold ${isInstagram ? 'text-purple-600' : 'text-blue-600'}`}>
+                  {isInstagram ? 'Voir la vidéo Instagram' : 'Recette originale'}
+                </p>
+                <p className={`text-xs truncate mt-0.5 ${isInstagram ? 'text-purple-400' : 'text-blue-400'}`}>
+                  {recipe.sourceUrl}
+                </p>
               </div>
-              <span className="text-blue-400">→</span>
+              <span className={`text-lg font-bold ${isInstagram ? 'text-purple-400' : 'text-blue-400'}`}>→</span>
             </a>
           )}
 
+          {/* Stats */}
           <div className="grid grid-cols-4 gap-2 mb-4">
             <div className="bg-slate-50 rounded-xl p-2 text-center">
               <p className="text-xs text-slate-500">Prép.</p>
@@ -101,41 +157,49 @@ function RecipeDetailModal({ recipe, onClose, storeMult, servings, onDelete }: R
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {recipe.dietaryTags.map(tag => (
-              <span key={tag} className={`text-xs px-2.5 py-1 rounded-full font-medium ${TAG_COLORS[tag]}`}>
-                {DIETARY_EMOJIS[tag]} {DIETARY_LABELS[tag]}
-              </span>
-            ))}
-          </div>
+          {/* Dietary tags */}
+          {recipe.dietaryTags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {recipe.dietaryTags.map(tag => (
+                <span key={tag} className={`text-xs px-2.5 py-1 rounded-full font-medium ${TAG_COLORS[tag]}`}>
+                  {DIETARY_EMOJIS[tag]} {DIETARY_LABELS[tag]}
+                </span>
+              ))}
+            </div>
+          )}
 
+          {/* Ingredients */}
           {recipe.ingredients.length > 0 ? (
             <>
               <h3 className="font-bold text-slate-700 mb-2">
                 Ingrédients <span className="text-sm font-normal text-slate-400">({servings} pers.)</span>
               </h3>
-              <ul className="space-y-2 mb-4">
-                {recipe.ingredients.map((ing) => (
-                  <li key={ing.name} className="flex items-center justify-between py-2 border-b border-slate-100">
+              <ul className="space-y-1 mb-4">
+                {recipe.ingredients.map((ing, idx) => (
+                  <li key={`${ing.name}-${idx}`} className="flex items-center justify-between py-2 border-b border-slate-100">
                     <span className="text-sm text-slate-700">{ing.name}</span>
                     <div className="text-right">
                       <span className="text-sm font-semibold text-slate-700">{fmtQty(ing.quantity, ing.unit)}</span>
-                      <span className="text-xs text-slate-400 block">
-                        {(ing.pricePerUnit * ing.quantity * scale * storeMult).toFixed(2)} €
-                      </span>
+                      {ing.pricePerUnit > 0 && (
+                        <span className="text-xs text-slate-400 block">
+                          {(ing.pricePerUnit * ing.quantity * scale * storeMult).toFixed(2)} €
+                        </span>
+                      )}
                     </div>
                   </li>
                 ))}
               </ul>
             </>
-          ) : recipe.isCustom ? (
+          ) : (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
               <p className="text-sm text-amber-700">
                 Aucun ingrédient renseigné — cette recette n'apparaîtra pas dans la liste de courses.
+                {recipe.sourceUrl && ' Consultez la vidéo pour les détails.'}
               </p>
             </div>
-          ) : null}
+          )}
 
+          {/* Delete */}
           {recipe.isCustom && onDelete && (
             <div className="border-t border-slate-100 pt-4">
               {!confirmDelete ? (
@@ -162,7 +226,7 @@ function RecipeDetailModal({ recipe, onClose, storeMult, servings, onDelete }: R
 
 export default function RecipesPage() {
   const navigate = useNavigate();
-  const { preferences, allRecipes, deleteRecipe } = useApp();
+  const { preferences, allRecipes, deleteRecipe, setNameOverride } = useApp();
   const store = STORES.find(s => s.id === preferences.storeId) ?? STORES[0];
   const [search, setSearch] = useState('');
   const [mealFilter, setMealFilter] = useState<MealType | 'all'>('all');
@@ -364,6 +428,7 @@ export default function RecipesPage() {
           storeMult={store.priceMultiplier}
           servings={preferences.servings}
           onDelete={detail.isCustom ? () => deleteRecipe(detail.id) : undefined}
+          onNameChange={(name) => setNameOverride(detail.id, name)}
         />
       )}
     </div>

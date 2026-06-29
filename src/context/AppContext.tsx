@@ -44,6 +44,7 @@ interface AppState {
   preferences: UserPreferences;
   customRecipes: Recipe[];
   onboardingDone: boolean;
+  nameOverrides: Record<string, string>;
 }
 
 type Action =
@@ -54,7 +55,8 @@ type Action =
   | { type: 'RESET_MENU' }
   | { type: 'ADD_RECIPE'; recipe: Recipe }
   | { type: 'DELETE_RECIPE'; recipeId: string }
-  | { type: 'COMPLETE_ONBOARDING' };
+  | { type: 'COMPLETE_ONBOARDING' }
+  | { type: 'SET_NAME_OVERRIDE'; recipeId: string; name: string };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -86,6 +88,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, customRecipes: state.customRecipes.filter(r => r.id !== action.recipeId) };
     case 'COMPLETE_ONBOARDING':
       return { ...state, onboardingDone: true };
+    case 'SET_NAME_OVERRIDE':
+      return { ...state, nameOverrides: { ...state.nameOverrides, [action.recipeId]: action.name } };
     default:
       return state;
   }
@@ -101,12 +105,13 @@ function loadState(): AppState {
         preferences: { ...DEFAULT_PREFS, ...(parsed.preferences ?? {}) },
         customRecipes: parsed.customRecipes ?? [],
         onboardingDone: parsed.onboardingDone ?? false,
+        nameOverrides: parsed.nameOverrides ?? {},
       };
     }
   } catch {
     // ignore
   }
-  return { weekMenu: DEFAULT_MENU, preferences: DEFAULT_PREFS, customRecipes: [], onboardingDone: false };
+  return { weekMenu: DEFAULT_MENU, preferences: DEFAULT_PREFS, customRecipes: [], onboardingDone: false, nameOverrides: {} };
 }
 
 export function recipeMatchesPrefs(
@@ -176,6 +181,7 @@ interface AppContextValue {
   addRecipe: (recipe: Recipe) => void;
   deleteRecipe: (recipeId: string) => void;
   completeOnboarding: () => void;
+  setNameOverride: (recipeId: string, name: string) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -187,10 +193,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('menuCoursesApp', JSON.stringify(state));
   }, [state]);
 
-  const allRecipes = useMemo(
-    () => [...ALL_BASE_RECIPES, ...state.customRecipes],
-    [state.customRecipes]
-  );
+  const allRecipes = useMemo(() => {
+    const base = [...ALL_BASE_RECIPES, ...state.customRecipes];
+    if (Object.keys(state.nameOverrides).length === 0) return base;
+    return base.map(r => state.nameOverrides[r.id] ? { ...r, name: state.nameOverrides[r.id] } : r);
+  }, [state.customRecipes, state.nameOverrides]);
 
   const store = useMemo(
     () => STORES.find(s => s.id === state.preferences.storeId) ?? STORES[0],
@@ -266,6 +273,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addRecipe: (recipe) => dispatch({ type: 'ADD_RECIPE', recipe }),
     deleteRecipe: (recipeId) => dispatch({ type: 'DELETE_RECIPE', recipeId }),
     completeOnboarding: () => dispatch({ type: 'COMPLETE_ONBOARDING' }),
+    setNameOverride: (recipeId, name) => dispatch({ type: 'SET_NAME_OVERRIDE', recipeId, name }),
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
