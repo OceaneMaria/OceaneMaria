@@ -1,12 +1,34 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { Recipe, MealType, DietaryTag } from '../types';
+import { Recipe, MealType, DietaryTag, Ingredient, ShoppingCategory } from '../types';
 
-const TEMPLATE_CSV = `Nom,Type,Emoji,TempsPrep,TempsCuisson,Portions,Description,Lien,Tags
-Salade César,lunch,🥗,15,0,4,Salade romaine croustillante sauce césar maison,https://www.instagram.com/p/example,vegetarian
-Poulet tikka masala,dinner,🍛,20,30,4,Curry indien crémeux à la tomate,https://notionpage.com/tikka,gluten-free|dairy-free|halal
-Smoothie bowl,breakfast,🍓,10,0,2,Bowl coloré aux fruits et granola,,vegetarian|gluten-free`;
+const TEMPLATE_CSV = `Nom,Type,Emoji,TempsPrep,TempsCuisson,Portions,Description,Ingrédients,Lien,Tags
+Salade César,lunch,🥗,15,0,4,Salade romaine croustillante sauce césar maison,Romaine; Parmesan; Croûtons; Sauce César,https://www.instagram.com/p/example,vegetarian
+Poulet tikka masala,dinner,🍛,20,30,4,Curry indien crémeux à la tomate,Poulet; Tomates; Lait de coco; Curry; Oignon,https://notionpage.com/tikka,gluten-free|dairy-free|halal
+Smoothie bowl,breakfast,🍓,10,0,2,Bowl coloré aux fruits et granola,Banane; Fraise; Granola; Lait d'amande,,vegetarian|gluten-free`;
+
+function catIngredient(name: string): ShoppingCategory {
+  const n = name.toLowerCase();
+  if (/poulet|dinde|agneau|viande|jambon|bacon|lardons|chorizo|prosciutto|canard|saucisse/.test(n)) return 'Viandes';
+  if (/saumon|thon|crevette|sardine|cabillaud|anchois/.test(n)) return 'Poissons';
+  if (/\blait\b|crème|fromage|yaourt|skyr|beurre|\boeuf\b|\bœuf\b|mozza|feta|ricotta|gorgonzola|chèvre|parmesan|camembert|mascarpone|emmental|cheddar|burrata|gruyère/.test(n)) return 'Produits laitiers & Œufs';
+  if (/farine|chapelure|\briz\b|semoule|quinoa|vermicelles|polenta|lasagne|nouilles|naan|\bpain\b|levure|\bwrap\b|gnocchi/.test(n)) return 'Boulangerie';
+  if (/carotte|courgette|tomate|potimarron|butternut|oignon|épinard|concombre|patate|pomme|brocoli|haricot|lentille|maïs|champignon|aubergine|poivron|basilic|coriandre|persil|menthe|thym|romarin|origan|gingembre|citron|orange|ananas|fraise|framboise|banane|échalote|ciboulette|pistache|noix|amande|noisette/.test(n)) return 'Fruits & Légumes';
+  return 'Épicerie';
+}
+
+function parseIngredients(raw: string): Ingredient[] {
+  if (!raw.trim()) return [];
+  const sep = raw.includes(';') ? ';' : ',';
+  return raw.split(sep).map(s => s.trim()).filter(Boolean).map(name => ({
+    name,
+    quantity: 1,
+    unit: '',
+    category: catIngredient(name),
+    pricePerUnit: 0,
+  }));
+}
 
 
 const MEAL_MAP: Record<string, MealType> = {
@@ -47,6 +69,7 @@ interface ParsedRow {
   cookTime: number;
   servings: number;
   description: string;
+  ingredients: Ingredient[];
   sourceUrl: string;
   dietaryTags: DietaryTag[];
   valid: boolean;
@@ -57,18 +80,26 @@ function parseCsv(text: string): ParsedRow[] {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return [];
 
-  const header = lines[0].split(',').map(h => h.trim().toLowerCase());
-  const COL = (name: string) => header.indexOf(name);
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, '');
+  const header = lines[0].split(',').map(h => norm(h.trim()));
+  const COL = (...names: string[]) => {
+    for (const name of names) {
+      const idx = header.indexOf(norm(name));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
 
-  const iNom = COL('nom') !== -1 ? COL('nom') : 0;
+  const iNom  = COL('nom', 'name') !== -1 ? COL('nom', 'name') : 0;
   const iType = COL('type') !== -1 ? COL('type') : 1;
   const iEmoji = COL('emoji') !== -1 ? COL('emoji') : 2;
-  const iPrep = COL('tempsprep') !== -1 ? COL('tempsprep') : 3;
-  const iCook = COL('tempscuisson') !== -1 ? COL('tempscuisson') : 4;
-  const iPart = COL('portions') !== -1 ? COL('portions') : 5;
+  const iPrep = COL('tempsprep', 'preptime', 'temps prep') !== -1 ? COL('tempsprep', 'preptime', 'temps prep') : 3;
+  const iCook = COL('tempscuisson', 'cooktime', 'temps cuisson') !== -1 ? COL('tempscuisson', 'cooktime', 'temps cuisson') : 4;
+  const iPart = COL('portions', 'servings') !== -1 ? COL('portions', 'servings') : 5;
   const iDesc = COL('description') !== -1 ? COL('description') : 6;
-  const iLien = COL('lien') !== -1 ? COL('lien') : 7;
-  const iTags = COL('tags') !== -1 ? COL('tags') : 8;
+  const iIngr = COL('ingredients', 'ingrédients', 'ingrediants') !== -1 ? COL('ingredients', 'ingrédients', 'ingrediants') : 7;
+  const iLien = COL('lien', 'url', 'link') !== -1 ? COL('lien', 'url', 'link') : 8;
+  const iTags = COL('tags', 'etiquettes', 'étiquettes') !== -1 ? COL('tags', 'etiquettes', 'étiquettes') : 9;
 
   return lines.slice(1).map(line => {
     // handle quoted commas
@@ -85,7 +116,7 @@ function parseCsv(text: string): ParsedRow[] {
     const get = (i: number) => (cols[i] ?? '').trim().replace(/^"|"$/g, '');
 
     const name = get(iNom);
-    if (!name) return { name: '', mealType: 'dinner' as MealType, emoji: '🍽️', prepTime: 0, cookTime: 0, servings: 4, description: '', sourceUrl: '', dietaryTags: [], valid: false, error: 'Nom manquant' };
+    if (!name) return { name: '', mealType: 'dinner' as MealType, emoji: '🍽️', prepTime: 0, cookTime: 0, servings: 4, description: '', ingredients: [], sourceUrl: '', dietaryTags: [], valid: false, error: 'Nom manquant' };
 
     const rawType = get(iType).toLowerCase();
     const mealType: MealType = (MEAL_MAP[rawType] ?? 'dinner') as MealType;
@@ -104,6 +135,7 @@ function parseCsv(text: string): ParsedRow[] {
       cookTime: parseInt(get(iCook)) || 0,
       servings: parseInt(get(iPart)) || 4,
       description: get(iDesc),
+      ingredients: parseIngredients(get(iIngr)),
       sourceUrl: get(iLien),
       dietaryTags,
       valid: true,
@@ -158,7 +190,7 @@ export default function ImportPage() {
         description: row.description,
         mealType: row.mealType,
         dietaryTags: row.dietaryTags,
-        ingredients: [],
+        ingredients: row.ingredients,
         servings: row.servings,
         prepTime: row.prepTime,
         cookTime: row.cookTime,
@@ -223,12 +255,13 @@ export default function ImportPage() {
               </button>
             </div>
             <div className="bg-slate-50 rounded-xl p-3 overflow-x-auto">
-              <code className="text-xs text-slate-600 whitespace-pre">{`Nom, Type, Emoji, TempsPrep, TempsCuisson, Portions, Description, Lien, Tags`}</code>
+              <code className="text-xs text-slate-600 whitespace-pre">{`Nom, Type, Emoji, TempsPrep, TempsCuisson, Portions, Description, Ingrédients, Lien, Tags`}</code>
             </div>
             <div className="mt-3 space-y-1.5 text-xs text-slate-500">
-              <p><strong>Type :</strong> breakfast | lunch | dinner (ou français : petit-déjeuner, déjeuner, dîner)</p>
-              <p><strong>Tags :</strong> séparés par | — vegetarian, vegan, gluten-free, dairy-free, halal</p>
-              <p><strong>Lien :</strong> URL Instagram, blog, YouTube… (optionnel)</p>
+              <p><strong>Type :</strong> breakfast | lunch | dinner (ou : petit-déjeuner, dîner, souper)</p>
+              <p><strong>Ingrédients :</strong> séparés par <code className="bg-slate-100 px-1 rounded">;</code> — ex: <em>Carotte; Oignon; Poulet</em></p>
+              <p><strong>Tags :</strong> séparés par | — vegetarian, vegan, gluten-free, dairy-free, halal, healthy</p>
+              <p><strong>Lien :</strong> URL Instagram, blog… (optionnel)</p>
             </div>
             <p className="mt-2 text-xs text-slate-400">
               Les colonnes de votre export Notion seront reconnues automatiquement si elles correspondent aux noms ci-dessus.
@@ -298,6 +331,7 @@ export default function ImportPage() {
                   <p className="font-semibold text-slate-800 truncate">{row.name}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {MEAL_ICONS[row.mealType]} · ⏱ {row.prepTime + row.cookTime} min · {row.servings} pers.
+                    {row.ingredients.length > 0 && ` · 🛒 ${row.ingredients.length} ingr.`}
                   </p>
                   {row.sourceUrl && (
                     <p className="text-xs text-blue-500 truncate mt-0.5">{row.sourceUrl}</p>
