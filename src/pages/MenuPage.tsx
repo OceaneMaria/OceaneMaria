@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { buildGeneratedMenu, buildFilledMenu, pickOneMeal } from '../context/AppContext';
-import { WEEK_DAYS, WeekDay, MealType, MEAL_EMOJIS, MEAL_LABELS } from '../types';
+import { WEEK_DAYS, WeekDay, MealType, MEAL_EMOJIS, MEAL_LABELS, MEAL_TYPES as ALL_MEAL_TYPES } from '../types';
 import RecipePickerModal from '../components/RecipePickerModal';
 import { STORES } from '../data/stores';
 
@@ -21,19 +21,19 @@ function getTodayDay(): WeekDay | null {
 }
 
 export default function MenuPage() {
-  const { weekMenu, setMeal, clearMeal, setMenu, preferences, allRecipes } = useApp();
+  const { weekMenu, setMeal, clearMeal, setMenu, preferences, allRecipes, recentRecipeIds } = useApp();
   const [confirmGenerate, setConfirmGenerate] = useState(false);
 
   function handleGenerate(replaceAll: boolean) {
     const menu = replaceAll
-      ? buildGeneratedMenu(allRecipes, preferences)
-      : buildFilledMenu(allRecipes, preferences, weekMenu);
+      ? buildGeneratedMenu(allRecipes, preferences, recentRecipeIds)
+      : buildFilledMenu(allRecipes, preferences, weekMenu, recentRecipeIds);
     setMenu(menu);
     setConfirmGenerate(false);
   }
 
   function handleRegenerateSlot(day: WeekDay, mealType: MealType, currentId?: string) {
-    const newId = pickOneMeal(allRecipes, preferences, mealType, weekMenu, currentId);
+    const newId = pickOneMeal(allRecipes, preferences, mealType, weekMenu, currentId, recentRecipeIds);
     if (newId) setMeal(day, mealType, newId);
   }
 
@@ -56,6 +56,8 @@ export default function MenuPage() {
   }
 
   const MEAL_TYPES = (preferences.activeMeals ?? ['breakfast', 'lunch', 'dinner']) as MealType[];
+  const batchDay = preferences.batchCookingDay ?? null;
+  const isBatchView = selectedDay === batchDay;
 
   return (
     <div className="pb-32">
@@ -125,6 +127,7 @@ export default function MenuPage() {
               >
                 <span className={`text-[10px] font-bold uppercase tracking-wide ${isToday ? 'text-emerald-600' : ''}`}>
                   {DAY_SHORTS[day]}
+                  {day === batchDay && <span className="ml-0.5">🍳</span>}
                 </span>
                 <span
                   className={`mt-1 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
@@ -145,6 +148,44 @@ export default function MenuPage() {
           })}
         </div>
       </div>
+
+      {/* Batch cooking summary */}
+      {isBatchView && (() => {
+        const weekRecipes = WEEK_DAYS.flatMap(d =>
+          ALL_MEAL_TYPES.map(mt => weekMenu[d][mt]).filter(Boolean).map(id => allRecipes.find(r => r.id === id)).filter(Boolean)
+        ) as ReturnType<typeof allRecipes.find>[];
+        const ingCount: Record<string, number> = {};
+        for (const r of weekRecipes) {
+          if (!r) continue;
+          for (const ing of r.ingredients) {
+            const k = ing.name.toLowerCase();
+            ingCount[k] = (ingCount[k] ?? 0) + 1;
+          }
+        }
+        const shared = Object.entries(ingCount).filter(([, c]) => c >= 2).map(([n]) => n).slice(0, 10);
+        return (
+          <div className="mx-4 mt-3 bg-amber-50 border border-amber-200 rounded-3xl p-4">
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">🍳 Jour Batch-cooking</p>
+            <p className="text-xs text-amber-600 leading-relaxed mb-2">
+              Profitez de ce jour pour préparer en avance les bases de la semaine.
+            </p>
+            {shared.length > 0 ? (
+              <>
+                <p className="text-xs font-semibold text-amber-700 mb-1.5">Ingrédients communs à préparer :</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {shared.map(name => (
+                    <span key={name} className="text-xs bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-medium capitalize">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-amber-500 italic">Générez un menu complet pour voir les ingrédients à préparer.</p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Meal slots */}
       <div className="px-4 py-4 space-y-3">

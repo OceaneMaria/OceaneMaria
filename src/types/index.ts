@@ -66,6 +66,7 @@ export interface UserPreferences {
   servings: number;
   excludedFoods: string[];
   activeMeals: MealType[];
+  batchCookingDay?: WeekDay | null;
 }
 
 export interface ShoppingItem {

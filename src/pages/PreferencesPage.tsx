@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { STORES } from '../data/stores';
-import { DietaryTag, MealType, UserPreferences, DIETARY_LABELS, DIETARY_EMOJIS, DIETARY_DESCRIPTIONS, MEAL_LABELS, MEAL_EMOJIS } from '../types';
+import { DietaryTag, MealType, WeekDay, UserPreferences, DIETARY_LABELS, DIETARY_EMOJIS, DIETARY_DESCRIPTIONS, MEAL_LABELS, MEAL_EMOJIS } from '../types';
 
 const DIETARY_TAGS: DietaryTag[] = [
   'vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'halal',
@@ -121,6 +121,35 @@ export default function PreferencesPage() {
               );
             })}
           </div>
+        </div>
+
+        {/* Batch cooking */}
+        <div className="bg-white rounded-3xl border border-stone-200 p-5">
+          <h2 className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-1">Mode Batch-cooking 🍳</h2>
+          <p className="text-xs text-stone-400 mb-4 leading-relaxed">
+            Choisissez un jour de préparation. Le générateur placera les recettes longues ce jour-là et des recettes rapides les autres jours.
+          </p>
+          <div className="grid grid-cols-4 gap-1.5 mb-2">
+            {(['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'] as WeekDay[]).map(day => {
+              const active = local.batchCookingDay === day;
+              return (
+                <button
+                  key={day}
+                  onClick={() => setLocal(p => ({ ...p, batchCookingDay: active ? null : day }))}
+                  className={`py-2 rounded-2xl text-xs font-semibold capitalize transition-all ${
+                    active ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-600'
+                  }`}
+                >
+                  {day.slice(0, 3)}
+                </button>
+              );
+            })}
+          </div>
+          {local.batchCookingDay && (
+            <p className="text-xs text-amber-600 font-medium">
+              Jour batch : <span className="capitalize">{local.batchCookingDay}</span>
+            </p>
+          )}
         </div>
 
         {/* Budget */}

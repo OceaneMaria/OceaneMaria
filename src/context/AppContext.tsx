@@ -45,6 +45,7 @@ interface AppState {
   customRecipes: Recipe[];
   onboardingDone: boolean;
   nameOverrides: Record<string, string>;
+  recentRecipeIds: string[];
 }
 
 type Action =
@@ -78,8 +79,16 @@ function reducer(state: AppState, action: Action): AppState {
       };
     case 'SET_PREFERENCES':
       return { ...state, preferences: action.preferences };
-    case 'SET_MENU':
-      return { ...state, weekMenu: action.weekMenu };
+    case 'SET_MENU': {
+      const newIds = WEEK_DAYS.flatMap(day =>
+        MEAL_TYPES.map(mt => action.weekMenu[day][mt]).filter(Boolean)
+      ) as string[];
+      return {
+        ...state,
+        weekMenu: action.weekMenu,
+        recentRecipeIds: [...newIds, ...state.recentRecipeIds].slice(0, 70),
+      };
+    }
     case 'RESET_MENU':
       return { ...state, weekMenu: DEFAULT_MENU };
     case 'ADD_RECIPE':
@@ -106,12 +115,13 @@ function loadState(): AppState {
         customRecipes: parsed.customRecipes ?? [],
         onboardingDone: parsed.onboardingDone ?? false,
         nameOverrides: parsed.nameOverrides ?? {},
+        recentRecipeIds: parsed.recentRecipeIds ?? [],
       };
     }
   } catch {
     // ignore
   }
-  return { weekMenu: DEFAULT_MENU, preferences: DEFAULT_PREFS, customRecipes: [], onboardingDone: false, nameOverrides: {} };
+  return { weekMenu: DEFAULT_MENU, preferences: DEFAULT_PREFS, customRecipes: [], onboardingDone: false, nameOverrides: {}, recentRecipeIds: [] };
 }
 
 export function recipeMatchesPrefs(
@@ -131,11 +141,42 @@ export function recipeMatchesPrefs(
   return true;
 }
 
+function recipeTime(r: Recipe) { return r.prepTime + r.cookTime; }
+
+function orderByFreshness(pool: Recipe[], recentSet: Set<string>): Recipe[] {
+  const fresh = pool.filter(r => !recentSet.has(r.id));
+  const stale = pool.filter(r => recentSet.has(r.id));
+  return [...fresh, ...stale];
+}
+
+function pickFrom(options: Recipe[]): Recipe {
+  // Bias toward the fresher half: weight index 0 more than index N
+  const n = options.length;
+  const bias = Math.random() * Math.random(); // squared → skews toward 0
+  return options[Math.floor(bias * n)];
+}
+
+function preferredPool(
+  pool: Recipe[],
+  isBatchDay: boolean,
+  mealType: MealType,
+  hasBatchDay: boolean
+): Recipe[] {
+  if (!hasBatchDay || mealType === 'breakfast') return pool;
+  const preferred = isBatchDay
+    ? pool.filter(r => recipeTime(r) > 45)
+    : pool.filter(r => recipeTime(r) <= 30);
+  return preferred.length >= 2 ? preferred : pool;
+}
+
 export function buildGeneratedMenu(
   allRecipes: Recipe[],
-  prefs: UserPreferences
+  prefs: UserPreferences,
+  recentIds: string[] = []
 ): WeekMenu {
   const eligible = allRecipes.filter(r => recipeMatchesPrefs(r, prefs, allRecipes));
+  const recentSet = new Set(recentIds);
+  const hasBatch = !!prefs.batchCookingDay;
 
   const byType: Record<MealType, Recipe[]> = {
     breakfast: eligible.filter(r => r.mealType === 'breakfast'),
@@ -151,11 +192,14 @@ export function buildGeneratedMenu(
 
   const activeMeals = prefs.activeMeals ?? MEAL_TYPES;
   for (const day of WEEK_DAYS) {
+    const isBatchDay = day === prefs.batchCookingDay;
     for (const mealType of activeMeals) {
-      const pool = byType[mealType].filter(r => !used.has(r.id));
-      const options = pool.length > 0 ? pool : byType[mealType];
+      const available = orderByFreshness(byType[mealType].filter(r => !used.has(r.id)), recentSet);
+      const withPref = preferredPool(available, isBatchDay, mealType, hasBatch);
+      const fallback = orderByFreshness(byType[mealType], recentSet);
+      const options = withPref.length > 0 ? withPref : fallback;
       if (options.length === 0) continue;
-      const picked = options[Math.floor(Math.random() * options.length)];
+      const picked = pickFrom(options);
       menu[day][mealType] = picked.id;
       used.add(picked.id);
     }
@@ -167,9 +211,13 @@ export function buildGeneratedMenu(
 export function buildFilledMenu(
   allRecipes: Recipe[],
   prefs: UserPreferences,
-  current: WeekMenu
+  current: WeekMenu,
+  recentIds: string[] = []
 ): WeekMenu {
   const eligible = allRecipes.filter(r => recipeMatchesPrefs(r, prefs, allRecipes));
+  const recentSet = new Set(recentIds);
+  const hasBatch = !!prefs.batchCookingDay;
+
   const byType: Record<MealType, Recipe[]> = {
     breakfast: eligible.filter(r => r.mealType === 'breakfast'),
     lunch: eligible.filter(r => r.mealType === 'lunch'),
@@ -190,12 +238,15 @@ export function buildFilledMenu(
 
   const activeMeals = prefs.activeMeals ?? MEAL_TYPES;
   for (const day of WEEK_DAYS) {
+    const isBatchDay = day === prefs.batchCookingDay;
     for (const mealType of activeMeals) {
       if (menu[day][mealType]) continue;
-      const pool = byType[mealType].filter(r => !used.has(r.id));
-      const options = pool.length > 0 ? pool : byType[mealType];
+      const available = orderByFreshness(byType[mealType].filter(r => !used.has(r.id)), recentSet);
+      const withPref = preferredPool(available, isBatchDay, mealType, hasBatch);
+      const fallback = orderByFreshness(byType[mealType], recentSet);
+      const options = withPref.length > 0 ? withPref : fallback;
       if (options.length === 0) continue;
-      const picked = options[Math.floor(Math.random() * options.length)];
+      const picked = pickFrom(options);
       menu[day][mealType] = picked.id;
       used.add(picked.id);
     }
@@ -209,13 +260,15 @@ export function pickOneMeal(
   prefs: UserPreferences,
   mealType: MealType,
   currentMenu: WeekMenu,
-  excludeId?: string
+  excludeId?: string,
+  recentIds: string[] = []
 ): string | null {
   const eligible = allRecipes.filter(r =>
     r.mealType === mealType && recipeMatchesPrefs(r, prefs, allRecipes)
   );
   if (eligible.length === 0) return null;
 
+  const recentSet = new Set(recentIds);
   const used = new Set<string>();
   for (const day of WEEK_DAYS) {
     const id = currentMenu[day][mealType];
@@ -223,10 +276,10 @@ export function pickOneMeal(
   }
   if (excludeId) used.delete(excludeId);
 
-  const pool = eligible.filter(r => !used.has(r.id));
-  const options = pool.length > 0 ? pool : eligible.filter(r => r.id !== excludeId);
+  const pool = orderByFreshness(eligible.filter(r => !used.has(r.id)), recentSet);
+  const options = pool.length > 0 ? pool : orderByFreshness(eligible.filter(r => r.id !== excludeId), recentSet);
   if (options.length === 0) return null;
-  return options[Math.floor(Math.random() * options.length)].id;
+  return pickFrom(options).id;
 }
 
 interface AppContextValue {
@@ -238,6 +291,7 @@ interface AppContextValue {
   totalCost: number;
   plannedMeals: number;
   onboardingDone: boolean;
+  recentRecipeIds: string[];
   setMeal: (day: WeekDay, mealType: MealType, recipeId: string) => void;
   clearMeal: (day: WeekDay, mealType: MealType) => void;
   setPreferences: (prefs: UserPreferences) => void;
@@ -330,6 +384,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     totalCost,
     plannedMeals,
     onboardingDone: state.onboardingDone,
+    recentRecipeIds: state.recentRecipeIds,
     setMeal: (day, mealType, recipeId) => dispatch({ type: 'SET_MEAL', day, mealType, recipeId }),
     clearMeal: (day, mealType) => dispatch({ type: 'CLEAR_MEAL', day, mealType }),
     setPreferences: (preferences) => dispatch({ type: 'SET_PREFERENCES', preferences }),
