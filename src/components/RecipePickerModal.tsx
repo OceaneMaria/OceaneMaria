@@ -20,9 +20,13 @@ export default function RecipePickerModal({ mealType, onSelect, onClose }: Props
       if (filterByPrefs && preferences.dietaryTags.length > 0) {
         if (!preferences.dietaryTags.every((tag) => r.dietaryTags.includes(tag))) return false;
       }
+      if (preferences.excludedFoods.length > 0) {
+        const haystack = [r.name, ...r.ingredients.map(i => i.name)].join(' ').toLowerCase();
+        if (preferences.excludedFoods.some(food => haystack.includes(food.toLowerCase()))) return false;
+      }
       return true;
     });
-  }, [mealType, search, filterByPrefs, preferences.dietaryTags, allRecipes]);
+  }, [mealType, search, filterByPrefs, preferences.dietaryTags, preferences.excludedFoods, allRecipes]);
 
   function recipePrice(recipe: Recipe): number {
     return recipe.ingredients.reduce((sum, ing) => sum + ing.pricePerUnit * ing.quantity, 0);
@@ -34,6 +38,9 @@ export default function RecipePickerModal({ mealType, onSelect, onClose }: Props
     'gluten-free': 'bg-amber-100 text-amber-700',
     'dairy-free': 'bg-blue-100 text-blue-700',
     halal: 'bg-purple-100 text-purple-700',
+    healthy: 'bg-lime-100 text-lime-700',
+    'high-protein': 'bg-orange-100 text-orange-700',
+    'crohn-friendly': 'bg-sky-100 text-sky-700',
   };
 
   return (

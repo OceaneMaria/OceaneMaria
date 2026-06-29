@@ -10,6 +10,9 @@ const TAG_COLORS: Record<DietaryTag, string> = {
   'gluten-free': 'bg-amber-100 text-amber-700',
   'dairy-free': 'bg-blue-100 text-blue-700',
   halal: 'bg-purple-100 text-purple-700',
+  healthy: 'bg-lime-100 text-lime-700',
+  'high-protein': 'bg-orange-100 text-orange-700',
+  'crohn-friendly': 'bg-sky-100 text-sky-700',
 };
 
 function totalTime(r: Recipe) { return r.prepTime + r.cookTime; }
@@ -167,6 +170,18 @@ export default function RecipesPage() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [detail, setDetail] = useState<Recipe | null>(null);
 
+  const isExcluded = useMemo(() => {
+    if (preferences.excludedFoods.length === 0) return new Set<string>();
+    const excluded = new Set<string>();
+    for (const r of allRecipes) {
+      const haystack = [r.name, ...r.ingredients.map(i => i.name)].join(' ').toLowerCase();
+      if (preferences.excludedFoods.some(food => haystack.includes(food.toLowerCase()))) {
+        excluded.add(r.id);
+      }
+    }
+    return excluded;
+  }, [allRecipes, preferences.excludedFoods]);
+
   const filtered = useMemo(() => {
     return allRecipes.filter(r => {
       if (mealFilter !== 'all' && r.mealType !== mealFilter) return false;
@@ -285,14 +300,19 @@ export default function RecipesPage() {
               <button
                 key={recipe.id}
                 onClick={() => setDetail(recipe)}
-                className="bg-white rounded-2xl shadow-sm p-3 text-left flex flex-col gap-2 hover:shadow-md active:scale-[0.98] transition-all relative"
+                className={`bg-white rounded-2xl shadow-sm p-3 text-left flex flex-col gap-2 hover:shadow-md active:scale-[0.98] transition-all relative ${isExcluded.has(recipe.id) ? 'opacity-50' : ''}`}
               >
-                {recipe.isCustom && (
+                {isExcluded.has(recipe.id) && (
+                  <span className="absolute top-2 right-2 text-xs bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full">
+                    🚫
+                  </span>
+                )}
+                {recipe.isCustom && !isExcluded.has(recipe.id) && (
                   <span className="absolute top-2 right-2 text-xs bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded-full">
                     ✏️
                   </span>
                 )}
-                {recipe.sourceUrl && !recipe.isCustom && (
+                {recipe.sourceUrl && !recipe.isCustom && !isExcluded.has(recipe.id) && (
                   <span className="absolute top-2 right-2 text-xs">🔗</span>
                 )}
                 <span className="text-4xl">{recipe.emoji}</span>

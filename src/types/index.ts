@@ -1,6 +1,14 @@
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
 
-export type DietaryTag = 'vegetarian' | 'vegan' | 'gluten-free' | 'dairy-free' | 'halal';
+export type DietaryTag =
+  | 'vegetarian'
+  | 'vegan'
+  | 'gluten-free'
+  | 'dairy-free'
+  | 'halal'
+  | 'healthy'
+  | 'high-protein'
+  | 'crohn-friendly';
 
 export type ShoppingCategory =
   | 'Fruits & Légumes'
@@ -15,7 +23,7 @@ export interface Ingredient {
   quantity: number;
   unit: string;
   category: ShoppingCategory;
-  pricePerUnit: number; // prix par unité à Carrefour (référence)
+  pricePerUnit: number;
 }
 
 export interface Recipe {
@@ -26,21 +34,12 @@ export interface Recipe {
   dietaryTags: DietaryTag[];
   ingredients: Ingredient[];
   servings: number;
-  prepTime: number; // minutes
-  cookTime: number; // minutes
+  prepTime: number;
+  cookTime: number;
   emoji: string;
-  sourceUrl?: string; // lien Instagram, blog, etc.
+  sourceUrl?: string;
   isCustom?: boolean;
 }
-
-export type TimeFilter = 'all' | 'quick' | 'medium' | 'long';
-
-export const TIME_FILTER_LABELS: Record<TimeFilter, string> = {
-  all: 'Tous',
-  quick: '⚡ Rapide (<20 min)',
-  medium: '🕐 Moyen (20–45 min)',
-  long: '🍲 Long (>45 min)',
-};
 
 export interface Store {
   id: string;
@@ -51,7 +50,7 @@ export interface Store {
 }
 
 export interface DayMenu {
-  breakfast?: string; // recipe id
+  breakfast?: string;
   lunch?: string;
   dinner?: string;
 }
@@ -65,6 +64,7 @@ export interface UserPreferences {
   storeId: string;
   weeklyBudget: number;
   servings: number;
+  excludedFoods: string[];
 }
 
 export interface ShoppingItem {
@@ -75,6 +75,8 @@ export interface ShoppingItem {
   totalPrice: number;
   fromRecipes: string[];
 }
+
+export type TimeFilter = 'all' | 'quick' | 'medium' | 'long';
 
 export const WEEK_DAYS: WeekDay[] = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
@@ -98,6 +100,9 @@ export const DIETARY_LABELS: Record<DietaryTag, string> = {
   'gluten-free': 'Sans gluten',
   'dairy-free': 'Sans lactose',
   halal: 'Halal',
+  healthy: 'Sain & équilibré',
+  'high-protein': 'Riche en protéines',
+  'crohn-friendly': 'Adapté Crohn',
 };
 
 export const DIETARY_EMOJIS: Record<DietaryTag, string> = {
@@ -106,13 +111,27 @@ export const DIETARY_EMOJIS: Record<DietaryTag, string> = {
   'gluten-free': '🌾',
   'dairy-free': '🥛',
   halal: '☪️',
+  healthy: '💚',
+  'high-protein': '💪',
+  'crohn-friendly': '🏥',
+};
+
+export const DIETARY_DESCRIPTIONS: Record<DietaryTag, string> = {
+  vegetarian: 'Pas de viande ni poisson',
+  vegan: 'Aucun produit animal',
+  'gluten-free': 'Sans blé, seigle, orge',
+  'dairy-free': 'Sans lait ni fromage',
+  halal: 'Viande certifiée halal',
+  healthy: 'Recettes équilibrées et peu transformées',
+  'high-protein': 'Riches en viande, poisson, œufs ou légumineuses',
+  'crohn-friendly': 'Légumes cuits, fibres douces, faciles à digérer',
 };
 
 export const CATEGORY_EMOJIS: Record<ShoppingCategory, string> = {
   'Fruits & Légumes': '🥕',
-  'Viandes': '🥩',
-  'Poissons': '🐟',
+  Viandes: '🥩',
+  Poissons: '🐟',
   'Produits laitiers & Œufs': '🧀',
-  'Boulangerie': '🥖',
-  'Épicerie': '🧴',
+  Boulangerie: '🥖',
+  Épicerie: '🧴',
 };

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { buildGeneratedMenu } from '../context/AppContext';
 import { WEEK_DAYS, WeekDay, MealType, MEAL_EMOJIS, MEAL_LABELS } from '../types';
 import RecipePickerModal from '../components/RecipePickerModal';
 import { STORES } from '../data/stores';
@@ -20,7 +21,14 @@ function getTodayDay(): WeekDay | null {
 }
 
 export default function MenuPage() {
-  const { weekMenu, setMeal, clearMeal, preferences, allRecipes } = useApp();
+  const { weekMenu, setMeal, clearMeal, setMenu, preferences, allRecipes } = useApp();
+  const [confirmGenerate, setConfirmGenerate] = useState(false);
+
+  function handleGenerate() {
+    const menu = buildGeneratedMenu(allRecipes, preferences);
+    setMenu(menu);
+    setConfirmGenerate(false);
+  }
   const [selectedDay, setSelectedDay] = useState<WeekDay>(getTodayDay() ?? 'lundi');
   const [picker, setPicker] = useState<{ mealType: MealType } | null>(null);
   const store = STORES.find(s => s.id === preferences.storeId) ?? STORES[0];
@@ -44,12 +52,40 @@ export default function MenuPage() {
   return (
     <div className="pb-24">
       {/* Header */}
-      <div className="bg-green-600 px-4 pt-12 pb-4 text-white">
-        <h1 className="text-xl font-bold">Menu de la semaine</h1>
-        <p className="text-green-200 text-sm mt-0.5">
-          Magasin : {store.name} — {preferences.servings} pers.
-        </p>
+      <div className="bg-green-600 px-4 pt-12 pb-4 text-white flex items-center gap-3">
+        <div className="flex-1">
+          <h1 className="text-xl font-bold">Menu de la semaine</h1>
+          <p className="text-green-200 text-sm mt-0.5">
+            {store.name} — {preferences.servings} pers.
+          </p>
+        </div>
+        <button
+          onClick={() => setConfirmGenerate(true)}
+          className="flex items-center gap-1.5 bg-white/20 text-white text-sm font-semibold px-3 py-2 rounded-xl border border-white/30 shrink-0"
+        >
+          ✨ Générer
+        </button>
       </div>
+
+      {confirmGenerate && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
+          <div className="bg-white w-full max-w-lg mx-auto rounded-t-2xl p-6 space-y-4">
+            <h3 className="font-bold text-slate-800 text-lg">Générer le menu automatiquement ?</h3>
+            <p className="text-slate-500 text-sm">
+              Les recettes seront choisies selon vos préférences et aliments exclus.
+              Le menu actuel sera remplacé.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={handleGenerate} className="flex-1 py-3 bg-green-600 text-white font-bold rounded-xl">
+                ✨ Générer
+              </button>
+              <button onClick={() => setConfirmGenerate(false)} className="flex-1 py-3 bg-slate-200 text-slate-700 font-bold rounded-xl">
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Day tabs */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
