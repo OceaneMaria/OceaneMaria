@@ -1,8 +1,13 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Recipe, MealType, DietaryTag, TimeFilter, DIETARY_LABELS, DIETARY_EMOJIS, MEAL_LABELS, MEAL_EMOJIS } from '../types';
+import {
+  Recipe, MealType, DietaryTag, TimeFilter, Season, SortOption,
+  DIETARY_LABELS, DIETARY_EMOJIS, MEAL_LABELS, MEAL_EMOJIS,
+  SEASON_LABELS, SEASON_EMOJIS,
+} from '../types';
 import { useApp } from '../context/AppContext';
 import { STORES } from '../data/stores';
+import { detectSeasons, currentSeason } from '../utils/season';
 
 const TAG_COLORS: Record<DietaryTag, string> = {
   vegetarian: 'bg-green-100 text-green-700',
@@ -243,7 +248,17 @@ export default function RecipesPage() {
   const [mealFilter, setMealFilter] = useState<MealType | 'all'>('all');
   const [tagFilter, setTagFilter] = useState<DietaryTag | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
+  const [seasonFilter, setSeasonFilter] = useState<Season | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('default');
   const [detail, setDetail] = useState<Recipe | null>(null);
+
+  const todaySeason = useMemo(() => currentSeason(), []);
+
+  const seasonMap = useMemo(() => {
+    const m = new Map<string, Season[]>();
+    for (const r of allRecipes) m.set(r.id, detectSeasons(r));
+    return m;
+  }, [allRecipes]);
 
   const isExcluded = useMemo(() => {
     if (preferences.excludedFoods.length === 0) return new Set<string>();
@@ -266,9 +281,21 @@ export default function RecipesPage() {
       if (timeFilter === 'quick' && t > 20) return false;
       if (timeFilter === 'medium' && (t <= 20 || t > 45)) return false;
       if (timeFilter === 'long' && t <= 45) return false;
+      if (seasonFilter) {
+        const seasons = seasonMap.get(r.id) ?? [];
+        if (seasons.length > 0 && !seasons.includes(seasonFilter)) return false;
+      }
       return true;
     });
-  }, [allRecipes, mealFilter, tagFilter, search, timeFilter]);
+  }, [allRecipes, mealFilter, tagFilter, search, timeFilter, seasonFilter, seasonMap]);
+
+  const displayed = useMemo(() => {
+    const arr = [...filtered];
+    if (sortBy === 'time-asc') arr.sort((a, b) => totalTime(a) - totalTime(b));
+    else if (sortBy === 'time-desc') arr.sort((a, b) => totalTime(b) - totalTime(a));
+    else if (sortBy === 'az') arr.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+    return arr;
+  }, [filtered, sortBy]);
 
   const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
   const DIETARY_TAGS: DietaryTag[] = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'halal'];
@@ -277,6 +304,13 @@ export default function RecipesPage() {
     { value: 'quick', label: '⚡ <20 min' },
     { value: 'medium', label: '🕐 20–45 min' },
     { value: 'long', label: '🍲 >45 min' },
+  ];
+  const SEASONS: Season[] = ['printemps', 'été', 'automne', 'hiver'];
+  const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+    { value: 'default', label: 'Par défaut' },
+    { value: 'time-asc', label: '⏱ Rapide d\'abord' },
+    { value: 'time-desc', label: '⏱ Long d\'abord' },
+    { value: 'az', label: 'A → Z' },
   ];
 
   const customCount = allRecipes.filter(r => r.isCustom).length;
@@ -359,10 +393,41 @@ export default function RecipesPage() {
             </button>
           ))}
         </div>
+
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+          {SEASONS.map(s => (
+            <button
+              key={s}
+              onClick={() => setSeasonFilter(seasonFilter === s ? null : s)}
+              className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors flex items-center gap-1 ${
+                seasonFilter === s ? 'bg-emerald-700 text-white' : 'bg-white text-stone-600 border border-stone-200'
+              }`}
+            >
+              {SEASON_EMOJIS[s]} {SEASON_LABELS[s]}
+              {s === todaySeason && (
+                <span className={`w-1.5 h-1.5 rounded-full ${seasonFilter === s ? 'bg-white' : 'bg-emerald-500'}`} />
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+          {SORT_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setSortBy(opt.value)}
+              className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                sortBy === opt.value ? 'bg-stone-700 text-white' : 'bg-white text-stone-600 border border-stone-200'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Recipe grid */}
-      {filtered.length === 0 ? (
+      {displayed.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-stone-400 gap-3">
           <div className="w-16 h-16 rounded-3xl bg-white border border-stone-200 flex items-center justify-center text-3xl">
             🔍
@@ -371,7 +436,7 @@ export default function RecipesPage() {
         </div>
       ) : (
         <div className="p-4 grid grid-cols-2 gap-3">
-          {filtered.map((recipe) => {
+          {displayed.map((recipe) => {
             const cost = recipe.ingredients.reduce(
               (s, i) => s + i.pricePerUnit * i.quantity * (preferences.servings / recipe.servings) * store.priceMultiplier, 0
             );

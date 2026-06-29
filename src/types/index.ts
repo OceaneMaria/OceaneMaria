@@ -79,6 +79,24 @@ export interface ShoppingItem {
 
 export type TimeFilter = 'all' | 'quick' | 'medium' | 'long';
 
+export type Season = 'printemps' | 'été' | 'automne' | 'hiver';
+
+export type SortOption = 'default' | 'time-asc' | 'time-desc' | 'az';
+
+export const SEASON_LABELS: Record<Season, string> = {
+  printemps: 'Printemps',
+  été: 'Été',
+  automne: 'Automne',
+  hiver: 'Hiver',
+};
+
+export const SEASON_EMOJIS: Record<Season, string> = {
+  printemps: '🌸',
+  été: '☀️',
+  automne: '🍂',
+  hiver: '❄️',
+};
+
 export const WEEK_DAYS: WeekDay[] = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
 export const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
