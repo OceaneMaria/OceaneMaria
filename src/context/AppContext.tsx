@@ -32,6 +32,7 @@ const DEFAULT_PREFS: UserPreferences = {
   weeklyBudget: 150,
   servings: 4,
   excludedFoods: [],
+  activeMeals: ['breakfast', 'lunch', 'dinner'],
 };
 
 interface AppState {
@@ -139,8 +140,9 @@ export function buildGeneratedMenu(
     jeudi: { ...EMPTY_DAY }, vendredi: { ...EMPTY_DAY }, samedi: { ...EMPTY_DAY }, dimanche: { ...EMPTY_DAY },
   };
 
+  const activeMeals = prefs.activeMeals ?? MEAL_TYPES;
   for (const day of WEEK_DAYS) {
-    for (const mealType of MEAL_TYPES) {
+    for (const mealType of activeMeals) {
       const pool = byType[mealType].filter(r => !used.has(r.id));
       const options = pool.length > 0 ? pool : byType[mealType];
       if (options.length === 0) continue;

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { STORES } from '../data/stores';
-import { DietaryTag, UserPreferences, DIETARY_LABELS, DIETARY_EMOJIS, DIETARY_DESCRIPTIONS } from '../types';
+import { DietaryTag, MealType, UserPreferences, DIETARY_LABELS, DIETARY_EMOJIS, DIETARY_DESCRIPTIONS, MEAL_LABELS, MEAL_EMOJIS } from '../types';
 
 const DIETARY_TAGS: DietaryTag[] = [
   'vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'halal',
@@ -12,7 +12,10 @@ const DIETARY_TAGS: DietaryTag[] = [
 export default function PreferencesPage() {
   const navigate = useNavigate();
   const { preferences, setPreferences, resetMenu } = useApp();
-  const [local, setLocal] = useState<UserPreferences>({ ...preferences });
+  const [local, setLocal] = useState<UserPreferences>({
+    ...preferences,
+    activeMeals: preferences.activeMeals ?? ['breakfast', 'lunch', 'dinner'],
+  });
   const [foodInput, setFoodInput] = useState('');
   const [saved, setSaved] = useState(false);
   const [showReset, setShowReset] = useState(false);
@@ -68,6 +71,46 @@ export default function PreferencesPage() {
             <span className="text-3xl font-bold text-slate-800 w-12 text-center">{local.servings}</span>
             <button onClick={() => setLocal(p => ({ ...p, servings: Math.min(12, p.servings + 1) }))} className="w-10 h-10 rounded-full bg-slate-100 text-slate-700 text-xl font-bold flex items-center justify-center">+</button>
             <span className="text-slate-500 text-sm">personne{local.servings > 1 ? 's' : ''}</span>
+          </div>
+        </div>
+
+        {/* Active meals */}
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <h2 className="font-bold text-slate-700 mb-1">🍽️ Repas à planifier</h2>
+          <p className="text-xs text-slate-400 mb-3">Choisissez les repas que vous souhaitez inclure dans le menu.</p>
+          <div className="space-y-2">
+            {(['breakfast', 'lunch', 'dinner'] as MealType[]).map(meal => {
+              const active = local.activeMeals.includes(meal);
+              const isLast = meal === 'dinner';
+              const wouldBeAlone = active && local.activeMeals.length === 1;
+              return (
+                <button
+                  key={meal}
+                  onClick={() => {
+                    if (wouldBeAlone) return;
+                    setLocal(p => ({
+                      ...p,
+                      activeMeals: active
+                        ? p.activeMeals.filter(m => m !== meal)
+                        : [...p.activeMeals, meal as MealType].sort((a, b) =>
+                            ['breakfast', 'lunch', 'dinner'].indexOf(a) - ['breakfast', 'lunch', 'dinner'].indexOf(b)
+                          ),
+                    }));
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 transition-all ${
+                    active ? 'border-green-500 bg-green-50' : 'border-slate-200 bg-slate-50'
+                  } ${wouldBeAlone ? 'opacity-50' : ''}`}
+                >
+                  <span className="text-xl">{MEAL_EMOJIS[meal]}</span>
+                  <span className="flex-1 text-left text-sm font-medium text-slate-700">{MEAL_LABELS[meal]}</span>
+                  {!isLast && meal === 'lunch' && <span className="text-xs text-slate-400">midi</span>}
+                  {meal === 'dinner' && <span className="text-xs text-slate-400">soir</span>}
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${active ? 'border-green-500 bg-green-500' : 'border-slate-300'}`}>
+                    {active && <span className="text-white text-xs leading-none">✓</span>}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 

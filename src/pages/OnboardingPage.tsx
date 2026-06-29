@@ -43,7 +43,7 @@ export default function OnboardingPage() {
 
   function handleFinish() {
     setGenerating(true);
-    const prefs: UserPreferences = { dietaryTags, storeId, weeklyBudget: budget, servings, excludedFoods };
+    const prefs: UserPreferences = { dietaryTags, storeId, weeklyBudget: budget, servings, excludedFoods, activeMeals: ['breakfast', 'lunch', 'dinner'] };
     setPreferences(prefs);
     const menu = buildGeneratedMenu(allRecipes, prefs);
     setMenu(menu);

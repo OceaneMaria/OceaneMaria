@@ -65,6 +65,7 @@ export interface UserPreferences {
   weeklyBudget: number;
   servings: number;
   excludedFoods: string[];
+  activeMeals: MealType[];
 }
 
 export interface ShoppingItem {
@@ -84,8 +85,8 @@ export const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
 
 export const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Petit-déjeuner',
-  lunch: 'Déjeuner',
-  dinner: 'Dîner',
+  lunch: 'Dîner',
+  dinner: 'Souper',
 };
 
 export const MEAL_EMOJIS: Record<MealType, string> = {

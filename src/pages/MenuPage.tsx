@@ -47,7 +47,7 @@ export default function MenuPage() {
     return recipe.ingredients.reduce((s, i) => s + i.pricePerUnit * i.quantity * scale * store.priceMultiplier, 0);
   }
 
-  const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
+  const MEAL_TYPES = (preferences.activeMeals ?? ['breakfast', 'lunch', 'dinner']) as MealType[];
 
   return (
     <div className="pb-24">
@@ -110,7 +110,7 @@ export default function MenuPage() {
                     isSelected ? 'bg-green-600 text-white' : isToday ? 'bg-green-100 text-green-700' : 'text-slate-400'
                   }`}
                 >
-                  {meals}/3
+                  {meals}/{MEAL_TYPES.length}
                 </span>
                 {isSelected && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 rounded-t" />
