@@ -178,10 +178,11 @@ export function buildGeneratedMenu(
   const recentSet = new Set(recentIds);
   const hasBatch = !!prefs.batchCookingDay;
 
+  const mainPool = eligible.filter(r => r.mealType === 'lunch' || r.mealType === 'dinner');
   const byType: Record<MealType, Recipe[]> = {
     breakfast: eligible.filter(r => r.mealType === 'breakfast'),
-    lunch: eligible.filter(r => r.mealType === 'lunch'),
-    dinner: eligible.filter(r => r.mealType === 'dinner'),
+    lunch: mainPool,
+    dinner: mainPool,
   };
 
   const used = new Set<string>();
@@ -218,10 +219,11 @@ export function buildFilledMenu(
   const recentSet = new Set(recentIds);
   const hasBatch = !!prefs.batchCookingDay;
 
+  const mainPool = eligible.filter(r => r.mealType === 'lunch' || r.mealType === 'dinner');
   const byType: Record<MealType, Recipe[]> = {
     breakfast: eligible.filter(r => r.mealType === 'breakfast'),
-    lunch: eligible.filter(r => r.mealType === 'lunch'),
-    dinner: eligible.filter(r => r.mealType === 'dinner'),
+    lunch: mainPool,
+    dinner: mainPool,
   };
 
   const menu: WeekMenu = {
@@ -263,8 +265,10 @@ export function pickOneMeal(
   excludeId?: string,
   recentIds: string[] = []
 ): string | null {
+  const isMain = mealType === 'lunch' || mealType === 'dinner';
   const eligible = allRecipes.filter(r =>
-    r.mealType === mealType && recipeMatchesPrefs(r, prefs, allRecipes)
+    (isMain ? (r.mealType === 'lunch' || r.mealType === 'dinner') : r.mealType === mealType)
+    && recipeMatchesPrefs(r, prefs, allRecipes)
   );
   if (eligible.length === 0) return null;
 

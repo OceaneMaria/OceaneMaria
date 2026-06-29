@@ -26,7 +26,8 @@ export default function RecipePickerModal({ mealType, onSelect, onClose }: Props
 
   const filtered = useMemo(() => {
     return allRecipes.filter((r) => {
-      if (r.mealType !== mealType) return false;
+      const isMain = mealType === 'lunch' || mealType === 'dinner';
+      if (isMain ? (r.mealType !== 'lunch' && r.mealType !== 'dinner') : r.mealType !== mealType) return false;
       if (search && !r.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterByPrefs && preferences.dietaryTags.length > 0) {
         if (!preferences.dietaryTags.every((tag) => r.dietaryTags.includes(tag))) return false;
