@@ -12,7 +12,10 @@ import {
   MEAL_TYPES,
 } from '../types';
 import { RECIPES } from '../data/recipes';
+import { NOTION_RECIPES } from '../data/notionRecipes';
 import { STORES } from '../data/stores';
+
+const ALL_BASE_RECIPES = [...RECIPES, ...NOTION_RECIPES];
 
 const EMPTY_DAY: DayMenu = { breakfast: undefined, lunch: undefined, dinner: undefined };
 
@@ -184,7 +187,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state]);
 
   const allRecipes = useMemo(
-    () => [...RECIPES, ...state.customRecipes],
+    () => [...ALL_BASE_RECIPES, ...state.customRecipes],
     [state.customRecipes]
   );
 
