@@ -13,7 +13,7 @@ export default function OnboardingPage() {
   const { allRecipes, setPreferences, setMenu, completeOnboarding } = useApp();
   const [step, setStep] = useState(0);
 
-  const [storeId, setStoreId] = useState('leclerc');
+  const [storeId, setStoreId] = useState('colruyt');
   const [budget, setBudget] = useState(150);
   const [servings, setServings] = useState(4);
   const [dietaryTags, setDietaryTags] = useState<DietaryTag[]>([]);

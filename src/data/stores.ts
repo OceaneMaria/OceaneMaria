@@ -2,13 +2,6 @@ import { Store } from '../types';
 
 export const STORES: Store[] = [
   {
-    id: 'lidl',
-    name: 'Lidl',
-    priceMultiplier: 0.82,
-    color: '#0050aa',
-    bgColor: '#dbeafe',
-  },
-  {
     id: 'aldi',
     name: 'Aldi',
     priceMultiplier: 0.78,
@@ -16,11 +9,18 @@ export const STORES: Store[] = [
     bgColor: '#dbeafe',
   },
   {
-    id: 'leclerc',
-    name: 'E.Leclerc',
-    priceMultiplier: 0.90,
-    color: '#003082',
-    bgColor: '#eff6ff',
+    id: 'lidl',
+    name: 'Lidl',
+    priceMultiplier: 0.81,
+    color: '#0050aa',
+    bgColor: '#dbeafe',
+  },
+  {
+    id: 'colruyt',
+    name: 'Colruyt',
+    priceMultiplier: 0.86,
+    color: '#c2410c',
+    bgColor: '#ffedd5',
   },
   {
     id: 'intermarche',
@@ -30,11 +30,11 @@ export const STORES: Store[] = [
     bgColor: '#fee2e2',
   },
   {
-    id: 'super-u',
-    name: 'Super U',
-    priceMultiplier: 0.94,
-    color: '#c2410c',
-    bgColor: '#ffedd5',
+    id: 'ad-delhaize',
+    name: 'AD Delhaize',
+    priceMultiplier: 0.96,
+    color: '#166534',
+    bgColor: '#dcfce7',
   },
   {
     id: 'carrefour',
@@ -44,17 +44,17 @@ export const STORES: Store[] = [
     bgColor: '#eff6ff',
   },
   {
-    id: 'casino',
-    name: 'Casino',
-    priceMultiplier: 1.05,
-    color: '#dc2626',
-    bgColor: '#fee2e2',
+    id: 'cora',
+    name: 'Cora',
+    priceMultiplier: 1.02,
+    color: '#7c3aed',
+    bgColor: '#f5f3ff',
   },
   {
-    id: 'monoprix',
-    name: 'Monoprix',
-    priceMultiplier: 1.18,
-    color: '#1f2937',
-    bgColor: '#f3f4f6',
+    id: 'delhaize',
+    name: 'Delhaize',
+    priceMultiplier: 1.08,
+    color: '#15803d',
+    bgColor: '#dcfce7',
   },
 ];

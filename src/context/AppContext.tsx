@@ -28,7 +28,7 @@ const DEFAULT_MENU: WeekMenu = {
 
 const DEFAULT_PREFS: UserPreferences = {
   dietaryTags: [],
-  storeId: 'leclerc',
+  storeId: 'colruyt',
   weeklyBudget: 150,
   servings: 4,
   excludedFoods: [],
