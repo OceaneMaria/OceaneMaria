@@ -1336,6 +1336,11 @@ const D: [string,string,string,[number,string,string][]][] = [
   ['Tarte cookie ganache chocolat 🤎','dinner','https://instagram.com/reel/DYNGGZ3MZkn/',[]],
   ['Ma mousse au chocolat et Get 27 (ou 31) gourmande et sulfureuse 😅😋','dinner','https://instagram.com/reel/DYQ2cXtIPps/',[]],
   ['📺 ÉPISODE 04 — Sauce Creamy Deluxe Healthy vs McDo.','dinner','https://instagram.com/reel/DYkCOwjo7ie/',[[66.0,'','Kcal'],[6.0,'g','Protéines'],[3.0,'g','Lipides'],[3.4,'g','Glucides']]],
+  ['Recette Instagram','dinner','https://instagram.com/reel/C-M0QJCAuoY/',[]],
+  ['Recette Instagram','dinner','https://instagram.com/reel/C-YGRNSMIYr/',[]],
+  ['Recette Instagram','dinner','https://instagram.com/reel/C-c69FuoDKK/',[]],
+  ['Recette Instagram','dinner','https://instagram.com/reel/C-iRk-mISXe/',[]],
+  ['Recette Instagram','dinner','https://instagram.com/reel/DIWamBTC-yS/',[]],
 ];
 
 export const INSTAGRAM_RECIPES: Recipe[] = D.map(([name, mealType, url, ingrs], i) => ({
