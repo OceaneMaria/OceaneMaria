@@ -50,7 +50,7 @@ export default function MenuPage() {
   const MEAL_TYPES = (preferences.activeMeals ?? ['breakfast', 'lunch', 'dinner']) as MealType[];
 
   return (
-    <div className="pb-24">
+    <div className="pb-36">
       {/* Header */}
       <div className="bg-green-600 px-4 pt-12 pb-4 text-white flex items-center gap-3">
         <div className="flex-1">
@@ -68,8 +68,8 @@ export default function MenuPage() {
       </div>
 
       {confirmGenerate && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
-          <div className="bg-white w-full max-w-lg mx-auto rounded-t-2xl p-6 space-y-4">
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end">
+          <div className="bg-white w-full max-w-lg mx-auto rounded-t-2xl p-6 pb-10 space-y-4">
             <h3 className="font-bold text-slate-800 text-lg">Générer le menu automatiquement ?</h3>
             <p className="text-slate-500 text-sm">
               Les recettes seront choisies selon vos préférences et aliments exclus.

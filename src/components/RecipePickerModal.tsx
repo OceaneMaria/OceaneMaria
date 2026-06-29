@@ -44,7 +44,7 @@ export default function RecipePickerModal({ mealType, onSelect, onClose }: Props
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/50" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black/50" onClick={onClose}>
       <div
         className="mt-auto bg-white rounded-t-2xl max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
