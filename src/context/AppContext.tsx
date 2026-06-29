@@ -13,9 +13,10 @@ import {
 } from '../types';
 import { RECIPES } from '../data/recipes';
 import { NOTION_RECIPES } from '../data/notionRecipes';
+import { INSTAGRAM_RECIPES } from '../data/instagramRecipes';
 import { STORES } from '../data/stores';
 
-const ALL_BASE_RECIPES = [...RECIPES, ...NOTION_RECIPES];
+const ALL_BASE_RECIPES = [...RECIPES, ...NOTION_RECIPES, ...INSTAGRAM_RECIPES];
 
 const EMPTY_DAY: DayMenu = { breakfast: undefined, lunch: undefined, dinner: undefined };
 
