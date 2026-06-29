@@ -164,6 +164,71 @@ export function buildGeneratedMenu(
   return menu;
 }
 
+export function buildFilledMenu(
+  allRecipes: Recipe[],
+  prefs: UserPreferences,
+  current: WeekMenu
+): WeekMenu {
+  const eligible = allRecipes.filter(r => recipeMatchesPrefs(r, prefs, allRecipes));
+  const byType: Record<MealType, Recipe[]> = {
+    breakfast: eligible.filter(r => r.mealType === 'breakfast'),
+    lunch: eligible.filter(r => r.mealType === 'lunch'),
+    dinner: eligible.filter(r => r.mealType === 'dinner'),
+  };
+
+  const menu: WeekMenu = {
+    lundi: { ...current.lundi }, mardi: { ...current.mardi }, mercredi: { ...current.mercredi },
+    jeudi: { ...current.jeudi }, vendredi: { ...current.vendredi }, samedi: { ...current.samedi }, dimanche: { ...current.dimanche },
+  };
+
+  const used = new Set<string>();
+  for (const day of WEEK_DAYS) {
+    for (const mt of MEAL_TYPES) {
+      if (menu[day][mt]) used.add(menu[day][mt]!);
+    }
+  }
+
+  const activeMeals = prefs.activeMeals ?? MEAL_TYPES;
+  for (const day of WEEK_DAYS) {
+    for (const mealType of activeMeals) {
+      if (menu[day][mealType]) continue;
+      const pool = byType[mealType].filter(r => !used.has(r.id));
+      const options = pool.length > 0 ? pool : byType[mealType];
+      if (options.length === 0) continue;
+      const picked = options[Math.floor(Math.random() * options.length)];
+      menu[day][mealType] = picked.id;
+      used.add(picked.id);
+    }
+  }
+
+  return menu;
+}
+
+export function pickOneMeal(
+  allRecipes: Recipe[],
+  prefs: UserPreferences,
+  mealType: MealType,
+  currentMenu: WeekMenu,
+  excludeId?: string
+): string | null {
+  const eligible = allRecipes.filter(r =>
+    r.mealType === mealType && recipeMatchesPrefs(r, prefs, allRecipes)
+  );
+  if (eligible.length === 0) return null;
+
+  const used = new Set<string>();
+  for (const day of WEEK_DAYS) {
+    const id = currentMenu[day][mealType];
+    if (id) used.add(id);
+  }
+  if (excludeId) used.delete(excludeId);
+
+  const pool = eligible.filter(r => !used.has(r.id));
+  const options = pool.length > 0 ? pool : eligible.filter(r => r.id !== excludeId);
+  if (options.length === 0) return null;
+  return options[Math.floor(Math.random() * options.length)].id;
+}
+
 interface AppContextValue {
   weekMenu: WeekMenu;
   preferences: UserPreferences;

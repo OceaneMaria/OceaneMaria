@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { buildGeneratedMenu } from '../context/AppContext';
+import { buildGeneratedMenu, buildFilledMenu, pickOneMeal } from '../context/AppContext';
 import { WEEK_DAYS, WeekDay, MealType, MEAL_EMOJIS, MEAL_LABELS } from '../types';
 import RecipePickerModal from '../components/RecipePickerModal';
 import { STORES } from '../data/stores';
@@ -24,10 +24,17 @@ export default function MenuPage() {
   const { weekMenu, setMeal, clearMeal, setMenu, preferences, allRecipes } = useApp();
   const [confirmGenerate, setConfirmGenerate] = useState(false);
 
-  function handleGenerate() {
-    const menu = buildGeneratedMenu(allRecipes, preferences);
+  function handleGenerate(replaceAll: boolean) {
+    const menu = replaceAll
+      ? buildGeneratedMenu(allRecipes, preferences)
+      : buildFilledMenu(allRecipes, preferences, weekMenu);
     setMenu(menu);
     setConfirmGenerate(false);
+  }
+
+  function handleRegenerateSlot(day: WeekDay, mealType: MealType, currentId?: string) {
+    const newId = pickOneMeal(allRecipes, preferences, mealType, weekMenu, currentId);
+    if (newId) setMeal(day, mealType, newId);
   }
 
   const [selectedDay, setSelectedDay] = useState<WeekDay>(getTodayDay() ?? 'lundi');
@@ -71,18 +78,32 @@ export default function MenuPage() {
         <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end">
           <div className="bg-white w-full max-w-lg mx-auto rounded-t-3xl p-6 pb-10 space-y-4">
             <div className="w-10 h-1 bg-stone-200 rounded-full mx-auto" />
-            <h3 className="font-bold text-stone-900 text-lg">Générer le menu ?</h3>
-            <p className="text-stone-500 text-sm leading-relaxed">
-              Les recettes seront choisies selon vos préférences et aliments exclus. Le menu actuel sera remplacé.
-            </p>
-            <div className="flex gap-3 pt-1">
-              <button onClick={handleGenerate} className="flex-1 py-3.5 bg-emerald-700 text-white font-bold rounded-2xl">
-                ✨ Générer
+            <h3 className="font-bold text-stone-900 text-lg">Générer le menu</h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleGenerate(false)}
+                className="w-full flex items-start gap-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-left active:scale-[0.98] transition-all"
+              >
+                <span className="text-2xl mt-0.5">✨</span>
+                <div>
+                  <p className="font-bold text-emerald-800 text-sm">Compléter le menu</p>
+                  <p className="text-xs text-emerald-600 mt-0.5 leading-relaxed">Remplit uniquement les cases vides — conserve les recettes déjà planifiées.</p>
+                </div>
               </button>
-              <button onClick={() => setConfirmGenerate(false)} className="flex-1 py-3.5 bg-stone-100 text-stone-700 font-bold rounded-2xl">
-                Annuler
+              <button
+                onClick={() => handleGenerate(true)}
+                className="w-full flex items-start gap-4 p-4 bg-stone-50 border border-stone-200 rounded-2xl text-left active:scale-[0.98] transition-all"
+              >
+                <span className="text-2xl mt-0.5">🔄</span>
+                <div>
+                  <p className="font-bold text-stone-800 text-sm">Tout regénérer</p>
+                  <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">Remplace toutes les recettes, y compris celles déjà planifiées.</p>
+                </div>
               </button>
             </div>
+            <button onClick={() => setConfirmGenerate(false)} className="w-full py-3 text-stone-400 text-sm font-medium">
+              Annuler
+            </button>
           </div>
         </div>
       )}
@@ -157,9 +178,16 @@ export default function MenuPage() {
                   </div>
                   <div className="flex gap-2">
                     <button
+                      onClick={() => handleRegenerateSlot(selectedDay, mealType, recipeId ?? undefined)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-600 text-sm"
+                      title="Regénérer"
+                    >
+                      🔀
+                    </button>
+                    <button
                       onClick={() => setPicker({ mealType })}
                       className="w-8 h-8 flex items-center justify-center rounded-full bg-stone-100 text-stone-500 text-sm"
-                      title="Changer"
+                      title="Choisir"
                     >
                       ✏️
                     </button>
