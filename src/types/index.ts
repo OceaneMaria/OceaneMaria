@@ -29,7 +29,18 @@ export interface Recipe {
   prepTime: number; // minutes
   cookTime: number; // minutes
   emoji: string;
+  sourceUrl?: string; // lien Instagram, blog, etc.
+  isCustom?: boolean;
 }
+
+export type TimeFilter = 'all' | 'quick' | 'medium' | 'long';
+
+export const TIME_FILTER_LABELS: Record<TimeFilter, string> = {
+  all: 'Tous',
+  quick: '⚡ Rapide (<20 min)',
+  medium: '🕐 Moyen (20–45 min)',
+  long: '🍲 Long (>45 min)',
+};
 
 export interface Store {
   id: string;

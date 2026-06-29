@@ -6,6 +6,7 @@ import {
   UserPreferences,
   ShoppingItem,
   ShoppingCategory,
+  Recipe,
   WEEK_DAYS,
   MEAL_TYPES,
 } from '../types';
@@ -34,13 +35,16 @@ const DEFAULT_PREFS: UserPreferences = {
 interface AppState {
   weekMenu: WeekMenu;
   preferences: UserPreferences;
+  customRecipes: Recipe[];
 }
 
 type Action =
   | { type: 'SET_MEAL'; day: WeekDay; mealType: MealType; recipeId: string }
   | { type: 'CLEAR_MEAL'; day: WeekDay; mealType: MealType }
   | { type: 'SET_PREFERENCES'; preferences: UserPreferences }
-  | { type: 'RESET_MENU' };
+  | { type: 'RESET_MENU' }
+  | { type: 'ADD_RECIPE'; recipe: Recipe }
+  | { type: 'DELETE_RECIPE'; recipeId: string };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -49,10 +53,7 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         weekMenu: {
           ...state.weekMenu,
-          [action.day]: {
-            ...state.weekMenu[action.day],
-            [action.mealType]: action.recipeId,
-          },
+          [action.day]: { ...state.weekMenu[action.day], [action.mealType]: action.recipeId },
         },
       };
     case 'CLEAR_MEAL':
@@ -60,16 +61,17 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         weekMenu: {
           ...state.weekMenu,
-          [action.day]: {
-            ...state.weekMenu[action.day],
-            [action.mealType]: undefined,
-          },
+          [action.day]: { ...state.weekMenu[action.day], [action.mealType]: undefined },
         },
       };
     case 'SET_PREFERENCES':
       return { ...state, preferences: action.preferences };
     case 'RESET_MENU':
       return { ...state, weekMenu: DEFAULT_MENU };
+    case 'ADD_RECIPE':
+      return { ...state, customRecipes: [...state.customRecipes, action.recipe] };
+    case 'DELETE_RECIPE':
+      return { ...state, customRecipes: state.customRecipes.filter(r => r.id !== action.recipeId) };
     default:
       return state;
   }
@@ -78,16 +80,25 @@ function reducer(state: AppState, action: Action): AppState {
 function loadState(): AppState {
   try {
     const raw = localStorage.getItem('menuCoursesApp');
-    if (raw) return JSON.parse(raw) as AppState;
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<AppState>;
+      return {
+        weekMenu: parsed.weekMenu ?? DEFAULT_MENU,
+        preferences: parsed.preferences ?? DEFAULT_PREFS,
+        customRecipes: parsed.customRecipes ?? [],
+      };
+    }
   } catch {
     // ignore
   }
-  return { weekMenu: DEFAULT_MENU, preferences: DEFAULT_PREFS };
+  return { weekMenu: DEFAULT_MENU, preferences: DEFAULT_PREFS, customRecipes: [] };
 }
 
 interface AppContextValue {
   weekMenu: WeekMenu;
   preferences: UserPreferences;
+  customRecipes: Recipe[];
+  allRecipes: Recipe[];
   shoppingList: ShoppingItem[];
   totalCost: number;
   plannedMeals: number;
@@ -95,6 +106,8 @@ interface AppContextValue {
   clearMeal: (day: WeekDay, mealType: MealType) => void;
   setPreferences: (prefs: UserPreferences) => void;
   resetMenu: () => void;
+  addRecipe: (recipe: Recipe) => void;
+  deleteRecipe: (recipeId: string) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -105,6 +118,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     localStorage.setItem('menuCoursesApp', JSON.stringify(state));
   }, [state]);
+
+  const allRecipes = useMemo(
+    () => [...RECIPES, ...state.customRecipes],
+    [state.customRecipes]
+  );
 
   const store = useMemo(
     () => STORES.find(s => s.id === state.preferences.storeId) ?? STORES[0],
@@ -121,7 +139,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!recipeId) continue;
         meals++;
 
-        const recipe = RECIPES.find(r => r.id === recipeId);
+        const recipe = allRecipes.find(r => r.id === recipeId);
         if (!recipe) continue;
 
         const scale = state.preferences.servings / recipe.servings;
@@ -170,11 +188,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const total = list.reduce((sum, i) => sum + i.totalPrice, 0);
     return { shoppingList: list, totalCost: total, plannedMeals: meals };
-  }, [state.weekMenu, state.preferences.servings, store]);
+  }, [state.weekMenu, state.preferences.servings, store, allRecipes]);
 
   const value: AppContextValue = {
     weekMenu: state.weekMenu,
     preferences: state.preferences,
+    customRecipes: state.customRecipes,
+    allRecipes,
     shoppingList,
     totalCost,
     plannedMeals,
@@ -182,6 +202,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     clearMeal: (day, mealType) => dispatch({ type: 'CLEAR_MEAL', day, mealType }),
     setPreferences: (preferences) => dispatch({ type: 'SET_PREFERENCES', preferences }),
     resetMenu: () => dispatch({ type: 'RESET_MENU' }),
+    addRecipe: (recipe) => dispatch({ type: 'ADD_RECIPE', recipe }),
+    deleteRecipe: (recipeId) => dispatch({ type: 'DELETE_RECIPE', recipeId }),
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

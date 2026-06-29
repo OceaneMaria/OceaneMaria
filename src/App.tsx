@@ -6,6 +6,8 @@ import MenuPage from './pages/MenuPage';
 import ShoppingListPage from './pages/ShoppingListPage';
 import RecipesPage from './pages/RecipesPage';
 import PreferencesPage from './pages/PreferencesPage';
+import AddRecipePage from './pages/AddRecipePage';
+import ImportPage from './pages/ImportPage';
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/courses" element={<ShoppingListPage />} />
             <Route path="/recettes" element={<RecipesPage />} />
+            <Route path="/recettes/ajouter" element={<AddRecipePage />} />
+            <Route path="/import" element={<ImportPage />} />
             <Route path="/preferences" element={<PreferencesPage />} />
           </Routes>
           <BottomNav />

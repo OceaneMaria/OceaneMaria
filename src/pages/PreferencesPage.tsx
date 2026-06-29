@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { STORES } from '../data/stores';
 import { DietaryTag, UserPreferences, DIETARY_LABELS, DIETARY_EMOJIS } from '../types';
@@ -6,6 +7,7 @@ import { DietaryTag, UserPreferences, DIETARY_LABELS, DIETARY_EMOJIS } from '../
 const DIETARY_TAGS: DietaryTag[] = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'halal'];
 
 export default function PreferencesPage() {
+  const navigate = useNavigate();
   const { preferences, setPreferences, resetMenu } = useApp();
   const [local, setLocal] = useState<UserPreferences>({ ...preferences });
   const [saved, setSaved] = useState(false);
@@ -175,6 +177,28 @@ export default function PreferencesPage() {
         >
           {saved ? '✓ Enregistré !' : 'Enregistrer les réglages'}
         </button>
+
+        {/* Import */}
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <h2 className="font-bold text-slate-700 mb-2">📥 Importer des recettes</h2>
+          <p className="text-sm text-slate-500 mb-3">
+            Importez vos recettes depuis Notion (export CSV) ou ajoutez-les manuellement avec un lien Instagram, blog, etc.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate('/import')}
+              className="flex-1 py-2.5 bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl"
+            >
+              📓 Import Notion CSV
+            </button>
+            <button
+              onClick={() => navigate('/recettes/ajouter')}
+              className="flex-1 py-2.5 bg-green-50 text-green-700 text-sm font-semibold rounded-xl border border-green-200"
+            >
+              ✏️ Ajouter manuellement
+            </button>
+          </div>
+        </div>
 
         {/* Danger zone */}
         <div className="bg-white rounded-2xl shadow-sm p-4">

@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { Recipe, MealType, DietaryTag, MEAL_LABELS, DIETARY_LABELS, DIETARY_EMOJIS } from '../types';
-import { RECIPES } from '../data/recipes';
 import { useApp } from '../context/AppContext';
 
 interface Props {
@@ -10,21 +9,20 @@ interface Props {
 }
 
 export default function RecipePickerModal({ mealType, onSelect, onClose }: Props) {
-  const { preferences } = useApp();
+  const { preferences, allRecipes } = useApp();
   const [search, setSearch] = useState('');
   const [filterByPrefs, setFilterByPrefs] = useState(preferences.dietaryTags.length > 0);
 
   const filtered = useMemo(() => {
-    return RECIPES.filter((r) => {
+    return allRecipes.filter((r) => {
       if (r.mealType !== mealType) return false;
       if (search && !r.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (filterByPrefs && preferences.dietaryTags.length > 0) {
-        const ok = preferences.dietaryTags.every((tag) => r.dietaryTags.includes(tag));
-        if (!ok) return false;
+        if (!preferences.dietaryTags.every((tag) => r.dietaryTags.includes(tag))) return false;
       }
       return true;
     });
-  }, [mealType, search, filterByPrefs, preferences.dietaryTags]);
+  }, [mealType, search, filterByPrefs, preferences.dietaryTags, allRecipes]);
 
   function recipePrice(recipe: Recipe): number {
     return recipe.ingredients.reduce((sum, ing) => sum + ing.pricePerUnit * ing.quantity, 0);
@@ -44,12 +42,10 @@ export default function RecipePickerModal({ mealType, onSelect, onClose }: Props
         className="mt-auto bg-white rounded-t-2xl max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-slate-300 rounded-full" />
         </div>
 
-        {/* Header */}
         <div className="px-4 pb-3 border-b border-slate-100">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-slate-800">
@@ -76,9 +72,7 @@ export default function RecipePickerModal({ mealType, onSelect, onClose }: Props
             <button
               onClick={() => setFilterByPrefs(!filterByPrefs)}
               className={`mt-2 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
-                filterByPrefs
-                  ? 'bg-green-600 text-white'
-                  : 'bg-slate-200 text-slate-600'
+                filterByPrefs ? 'bg-green-600 text-white' : 'bg-slate-200 text-slate-600'
               }`}
             >
               {filterByPrefs ? '✓ Filtrées selon vos préférences' : 'Afficher toutes les recettes'}
@@ -86,7 +80,6 @@ export default function RecipePickerModal({ mealType, onSelect, onClose }: Props
           )}
         </div>
 
-        {/* List */}
         <div className="overflow-y-auto flex-1">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center py-12 text-slate-400 gap-2">
@@ -112,10 +105,15 @@ export default function RecipePickerModal({ mealType, onSelect, onClose }: Props
                     <span className="text-3xl">{recipe.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="font-semibold text-slate-800 leading-tight">{recipe.name}</p>
-                        <span className="shrink-0 text-sm font-bold text-green-700">
-                          ~{recipePrice(recipe).toFixed(2)} €
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-semibold text-slate-800 leading-tight">{recipe.name}</p>
+                          {recipe.isCustom && <span className="text-xs text-green-600">✏️</span>}
+                        </div>
+                        {recipePrice(recipe) > 0 && (
+                          <span className="shrink-0 text-sm font-bold text-green-700">
+                            ~{recipePrice(recipe).toFixed(2)} €
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{recipe.description}</p>
                       <div className="flex flex-wrap gap-1 mt-1.5">

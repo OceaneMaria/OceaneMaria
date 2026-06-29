@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { RECIPES } from '../data/recipes';
 import { WEEK_DAYS, WeekDay, MealType, MEAL_EMOJIS, MEAL_LABELS } from '../types';
 import RecipePickerModal from '../components/RecipePickerModal';
 import { STORES } from '../data/stores';
@@ -21,7 +20,7 @@ function getTodayDay(): WeekDay | null {
 }
 
 export default function MenuPage() {
-  const { weekMenu, setMeal, clearMeal, preferences } = useApp();
+  const { weekMenu, setMeal, clearMeal, preferences, allRecipes } = useApp();
   const [selectedDay, setSelectedDay] = useState<WeekDay>(getTodayDay() ?? 'lundi');
   const [picker, setPicker] = useState<{ mealType: MealType } | null>(null);
   const store = STORES.find(s => s.id === preferences.storeId) ?? STORES[0];
@@ -34,7 +33,7 @@ export default function MenuPage() {
   }
 
   function recipeCost(recipeId: string): number {
-    const recipe = RECIPES.find(r => r.id === recipeId);
+    const recipe = allRecipes.find(r => r.id === recipeId);
     if (!recipe) return 0;
     const scale = preferences.servings / recipe.servings;
     return recipe.ingredients.reduce((s, i) => s + i.pricePerUnit * i.quantity * scale * store.priceMultiplier, 0);
@@ -90,7 +89,7 @@ export default function MenuPage() {
       <div className="px-4 py-4 space-y-3">
         {MEAL_TYPES.map((mealType) => {
           const recipeId = weekMenu[selectedDay][mealType];
-          const recipe = recipeId ? RECIPES.find(r => r.id === recipeId) : null;
+          const recipe = recipeId ? allRecipes.find(r => r.id === recipeId) : null;
 
           return (
             <div key={mealType} className="bg-white rounded-2xl shadow-sm overflow-hidden">

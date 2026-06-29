@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { STORES } from '../data/stores';
-import { RECIPES } from '../data/recipes';
 import { WEEK_DAYS, MEAL_TYPES, MEAL_LABELS, MEAL_EMOJIS, WeekDay } from '../types';
 
 function getWeekInfo() {
@@ -29,7 +28,7 @@ function getTodayDay(): WeekDay | null {
 }
 
 export default function HomePage() {
-  const { weekMenu, preferences, totalCost, plannedMeals } = useApp();
+  const { weekMenu, preferences, totalCost, plannedMeals, allRecipes } = useApp();
   const store = STORES.find(s => s.id === preferences.storeId) ?? STORES[0];
   const { range, weekNum } = getWeekInfo();
   const todayDay = getTodayDay();
@@ -101,7 +100,7 @@ export default function HomePage() {
             </h2>
             {MEAL_TYPES.map((mt) => {
               const recipeId = todayMenu?.[mt];
-              const recipe = recipeId ? RECIPES.find(r => r.id === recipeId) : null;
+              const recipe = recipeId ? allRecipes.find(r => r.id === recipeId) : null;
               return (
                 <div key={mt} className="flex items-center gap-3 py-2 border-b border-slate-100 last:border-0">
                   <span className="text-lg">{MEAL_EMOJIS[mt]}</span>
