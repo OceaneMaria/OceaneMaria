@@ -9,6 +9,9 @@
 
   const pickImageBtn = document.getElementById('pickImageBtn');
   const pickImageHint = document.getElementById('pickImageHint');
+  const sketchBtn = document.getElementById('sketchBtn');
+  const sketchThresholdRow = document.getElementById('sketchThresholdRow');
+  const sketchThresholdSlider = document.getElementById('sketchThresholdSlider');
   const freezeBtn = document.getElementById('freezeBtn');
   const mirrorBtn = document.getElementById('mirrorBtn');
   const switchCamBtn = document.getElementById('switchCamBtn');
@@ -29,11 +32,17 @@
     mirrored: false,
     frozen: false,
     imageLoaded: false,
+    sketchMode: false,
+    sketchThreshold: Number(sketchThresholdSlider.value),
   };
 
   let videoDevices = [];
   let currentDeviceIndex = 0;
   let currentStream = null;
+
+  let sourceImage = null; // Image originale chargée par l'utilisateur
+  let sketchData = null; // { width, height, magnitude } contours pré-calculés
+  let sketchRenderPending = false;
 
   function applyTransform() {
     const sx = state.mirrored ? -state.scale : state.scale;
@@ -94,13 +103,23 @@
 
   // ---- Image loading ----
 
+  let previousImageURL = null;
+
   function loadImageFile(file) {
     if (!file) return;
     const url = URL.createObjectURL(file);
-    overlay.onload = () => URL.revokeObjectURL(url);
-    overlay.src = url;
-    state.imageLoaded = true;
-    hint.classList.add('hidden');
+    const img = new Image();
+    img.onload = () => {
+      if (previousImageURL) URL.revokeObjectURL(previousImageURL);
+      previousImageURL = url;
+      sourceImage = img;
+      sketchData = null;
+      state.imageLoaded = true;
+      sketchBtn.disabled = false;
+      hint.classList.add('hidden');
+      updateOverlayImage();
+    };
+    img.src = url;
   }
 
   fileInput.addEventListener('change', () => {
@@ -109,6 +128,110 @@
 
   pickImageBtn.addEventListener('click', () => fileInput.click());
   pickImageHint.addEventListener('click', () => fileInput.click());
+
+  // ---- Style dessin (détection de contours) ----
+
+  function updateOverlayImage() {
+    if (!sourceImage) return;
+    if (state.sketchMode) {
+      if (!sketchData) sketchData = computeSketchData(sourceImage);
+      overlay.src = renderSketch(sketchData, state.sketchThreshold);
+    } else {
+      overlay.src = sourceImage.src;
+    }
+  }
+
+  function computeSketchData(img) {
+    const maxDim = 1000;
+    const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * scale));
+    const h = Math.max(1, Math.round(img.naturalHeight * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    const { data } = ctx.getImageData(0, 0, w, h);
+
+    const gray = new Float32Array(w * h);
+    for (let i = 0, p = 0; i < gray.length; i++, p += 4) {
+      gray[i] = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
+    }
+
+    const rawMagnitude = new Float32Array(w * h);
+    let maxMagnitude = 0;
+
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x;
+        const tl = gray[i - w - 1], t = gray[i - w], tr = gray[i - w + 1];
+        const l = gray[i - 1], r = gray[i + 1];
+        const bl = gray[i + w - 1], b = gray[i + w], br = gray[i + w + 1];
+
+        const gx = -tl + tr - 2 * l + 2 * r - bl + br;
+        const gy = -tl - 2 * t - tr + bl + 2 * b + br;
+        const mag = Math.sqrt(gx * gx + gy * gy);
+
+        rawMagnitude[i] = mag;
+        if (mag > maxMagnitude) maxMagnitude = mag;
+      }
+    }
+
+    const magnitude = new Uint8ClampedArray(w * h);
+    const norm = maxMagnitude > 0 ? 255 / maxMagnitude : 0;
+    for (let i = 0; i < rawMagnitude.length; i++) {
+      magnitude[i] = rawMagnitude[i] * norm;
+    }
+
+    return { width: w, height: h, magnitude };
+  }
+
+  function renderSketch(data, threshold) {
+    const { width, height, magnitude } = data;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.createImageData(width, height);
+    const out = imageData.data;
+
+    for (let i = 0; i < magnitude.length; i++) {
+      const alpha = Math.min(255, Math.max(0, (magnitude[i] - threshold) * 3));
+      const p = i * 4;
+      out[p] = 0;
+      out[p + 1] = 0;
+      out[p + 2] = 0;
+      out[p + 3] = alpha;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    return canvas.toDataURL('image/png');
+  }
+
+  function scheduleSketchRender() {
+    if (sketchRenderPending) return;
+    sketchRenderPending = true;
+    requestAnimationFrame(() => {
+      sketchRenderPending = false;
+      if (state.sketchMode && sketchData) {
+        overlay.src = renderSketch(sketchData, state.sketchThreshold);
+      }
+    });
+  }
+
+  sketchBtn.addEventListener('click', () => {
+    if (!sourceImage) return;
+    state.sketchMode = !state.sketchMode;
+    sketchBtn.classList.toggle('active', state.sketchMode);
+    sketchThresholdRow.classList.toggle('hidden', !state.sketchMode);
+    updateOverlayImage();
+  });
+
+  sketchThresholdSlider.addEventListener('input', () => {
+    state.sketchThreshold = Number(sketchThresholdSlider.value);
+    scheduleSketchRender();
+  });
 
   // ---- Freeze / live toggle ----
 

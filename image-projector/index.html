@@ -30,11 +30,17 @@
   <div id="toolbar">
     <div class="row">
       <button id="pickImageBtn" title="Choisir une image">🖼️ Image</button>
+      <button id="sketchBtn" title="Convertir en dessin au trait" disabled>✏️ Style dessin</button>
       <button id="freezeBtn" title="Figer / reprendre la caméra">📷 Figer</button>
       <button id="mirrorBtn" title="Miroir horizontal">↔️ Miroir</button>
       <button id="switchCamBtn" title="Changer de caméra">🔄 Caméra</button>
       <button id="fullscreenBtn" title="Plein écran">⛶ Plein écran</button>
       <button id="resetBtn" title="Réinitialiser la position">↺ Réinitialiser</button>
+    </div>
+
+    <div class="row slider-row hidden" id="sketchThresholdRow">
+      <label for="sketchThresholdSlider">Sensibilité</label>
+      <input type="range" id="sketchThresholdSlider" min="5" max="150" value="60">
     </div>
 
     <div class="row slider-row">

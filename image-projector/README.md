@@ -12,6 +12,7 @@ L'appli affiche le flux de la caméra en plein écran, avec l'image choisie supe
 2. Autoriser l'accès à la caméra.
 3. Appuyer sur **🖼️ Image** pour choisir la photo/dessin à reproduire.
 4. Ajuster :
+   - **✏️ Style dessin** : convertit la photo en dessin au trait (détection de contours), plus facile à décalquer qu'une photo pleine. Un réglage **Sensibilité** apparaît pour choisir combien de détails/contours faire ressortir. Le traitement se fait entièrement dans le navigateur (rien n'est envoyé sur internet).
    - **Atténuation** : transparence de l'image (pour bien voir le papier en dessous).
    - **Taille** / **Rotation** : sliders, ou directement avec deux doigts sur l'écran (pincer pour zoomer, tourner pour pivoter).
    - Glisser avec un doigt pour déplacer l'image.
