@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Projecteur d'image</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <video id="camera" autoplay playsinline muted></video>
+
+  <img id="overlay" alt="" draggable="false">
+
+  <div id="gestureLayer"></div>
+
+  <div id="hint">
+    <p>Choisissez une image pour commencer à tracer.</p>
+    <button id="pickImageHint">Choisir une image</button>
+  </div>
+
+  <div id="permissionError" class="hidden">
+    <p>Impossible d'accéder à la caméra. Autorisez l'accès à la caméra dans votre navigateur, et assurez-vous d'utiliser une connexion HTTPS.</p>
+  </div>
+
+  <input type="file" id="fileInput" accept="image/*" class="hidden">
+
+  <button id="toggleToolbar" title="Afficher/masquer les réglages">⚙️</button>
+
+  <div id="toolbar">
+    <div class="row">
+      <button id="pickImageBtn" title="Choisir une image">🖼️ Image</button>
+      <button id="freezeBtn" title="Figer / reprendre la caméra">📷 Figer</button>
+      <button id="mirrorBtn" title="Miroir horizontal">↔️ Miroir</button>
+      <button id="switchCamBtn" title="Changer de caméra">🔄 Caméra</button>
+      <button id="fullscreenBtn" title="Plein écran">⛶ Plein écran</button>
+      <button id="resetBtn" title="Réinitialiser la position">↺ Réinitialiser</button>
+    </div>
+
+    <div class="row slider-row">
+      <label for="opacitySlider">Atténuation</label>
+      <input type="range" id="opacitySlider" min="0" max="100" value="50">
+    </div>
+
+    <div class="row slider-row">
+      <label for="scaleSlider">Taille</label>
+      <input type="range" id="scaleSlider" min="10" max="400" value="100">
+    </div>
+
+    <div class="row slider-row">
+      <label for="rotationSlider">Rotation</label>
+      <input type="range" id="rotationSlider" min="0" max="360" value="0">
+    </div>
+  </div>
+
+<script src="app.js"></script>
+</body>
+</html>
