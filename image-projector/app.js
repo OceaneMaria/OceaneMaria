@@ -1,7 +1,6 @@
 (() => {
   const video = document.getElementById('camera');
   const overlay = document.getElementById('overlay');
-  const gestureLayer = document.getElementById('gestureLayer');
   const hint = document.getElementById('hint');
   const permissionError = document.getElementById('permissionError');
   const fileInput = document.getElementById('fileInput');
@@ -317,8 +316,8 @@
     return (Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180) / Math.PI;
   }
 
-  gestureLayer.addEventListener('pointerdown', (e) => {
-    gestureLayer.setPointerCapture(e.pointerId);
+  document.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button, input, #toolbar')) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (pointers.size === 1) {
@@ -343,7 +342,7 @@
     }
   });
 
-  gestureLayer.addEventListener('pointermove', (e) => {
+  document.addEventListener('pointermove', (e) => {
     if (!pointers.has(e.pointerId)) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -390,8 +389,8 @@
     }
   }
 
-  gestureLayer.addEventListener('pointerup', endPointer);
-  gestureLayer.addEventListener('pointercancel', endPointer);
+  document.addEventListener('pointerup', endPointer);
+  document.addEventListener('pointercancel', endPointer);
 
   // ---- Init ----
 

@@ -41,13 +41,6 @@ html, body {
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.15));
 }
 
-#gestureLayer {
-  position: fixed;
-  inset: 0;
-  z-index: 5;
-  touch-action: none;
-}
-
 #hint {
   position: fixed;
   inset: 0;
@@ -99,6 +92,11 @@ button {
   padding: 10px 14px;
   cursor: pointer;
   white-space: nowrap;
+  touch-action: manipulation;
+}
+
+input[type="range"] {
+  touch-action: manipulation;
 }
 
 button:active {
